@@ -1,6 +1,6 @@
 import { Geist, Geist_Mono, Montserrat } from 'next/font/google';
 import './globals.css';
-import Provider from './providers';
+import ConvexClientProvider from './ConvexClientProvider';
 
 // const geistSans = Geist({
 //   variable: '--font-geist-sans',
@@ -25,7 +25,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className={montserrat.className}>
-        <Provider>{children}</Provider>
+        <ConvexClientProvider>{children}</ConvexClientProvider>
       </body>
     </html>
   );
