@@ -36,16 +36,16 @@ function Captions({onHandleInputChange}) {
             <p className='text-sm text-gray-400'>Select Caption Style</p>
 
             <div className='flex flex-wrap gap-4'>
-                {options.map((option,index)=>(
+                {options.map((options,index)=>(
                     <div key={index}
                     onClick={()=>{
-                        setSelectedCaptionStyle(option.name)
-                        onHandleInputChange(option)
+                        setSelectedCaptionStyle(options.name)
+                        onHandleInputChange('caption', options)
                     }}
                     className={`p-2 hover:border bg-slate-900
                     border-gray-300 cursor-pointer rounded-lg
-                    ${selectedCaptionStyle == option.name && 'border'}`}>
-                        <h2 className={option.style}>{option.name}</h2>
+                    ${selectedCaptionStyle == options.name && 'border'}`}>
+                        <h2 className={options.style}>{options.name}</h2>
                     </div>
                 ))}
             </div>
