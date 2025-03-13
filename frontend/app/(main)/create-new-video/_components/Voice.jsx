@@ -1,5 +1,6 @@
 import React from 'react'
 import { useState } from 'react'
+import {ScrollArea} from '@/components/ui/scroll-area'
 
 const voiceOptions =[
     {
@@ -55,19 +56,24 @@ const voiceOptions =[
         "name": "(US) Sarah (Female)"
     }
 ]
-function Voice() {
-    cosnt [selectedVoice,setSelectedVoice]=useState();
+function Voice({onHandleInputChange}) {
+    const [selectedVoice,setSelectedVoice]=useState();
     return (
         <div className ='mt-5'>
         <h2>Video Voice</h2>
         <p className='text-sm text-gray-400'>Select voice for your video</p>
+        <ScrollArea className='h-[70px] w-full'>
         <div className='grid grid-cols-2 gap-3'>
             {voiceOptions.map((voice,index)=>(
                 <h2 className={`cursor-pointer p-3 dark:bg-slate-900 dark:border-white rounded-lg hover:boarder ${voice.name==selectedVoice&&'border'}`}
-                    onClick={()=>setSelectedVoice(voice.name)}
+                    onClick={()=>{setSelectedVoice(voice.name);
+                        setSelectedVoice(voice.name);
+                        onHandleInputChange('voice',voice.value)
+                    }}
                     key={index}>{voice.name}</h2>
             ))}
         </div>
+        </ScrollArea>
         </div>
     )
 }

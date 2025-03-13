@@ -4,6 +4,8 @@ import Topic from './_components/Topic'
 import { useState } from 'react'
 import VideoStyle from './_components/VideoStyle'
 import Voice from './_components/Voice'
+import Captions from './_components/Captions'
+import { WandSparkles } from 'lucide-react'
 
 function CreateNewVideo() {
 
@@ -29,6 +31,8 @@ function CreateNewVideo() {
                         {/* Voice */}
                         <Voice onHandleInputChange={onHandleInputChange}/>
                         {/* Captions */}
+                        <Captions onHandleInputChange={onHandleInputChange}/>
+                        <Button className="w-full mt-5"><WandSparkles/>Generate Video</Button>
                     <div>
                     </div>
                 </div>
