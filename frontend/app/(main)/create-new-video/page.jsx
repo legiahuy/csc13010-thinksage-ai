@@ -2,6 +2,7 @@
 import React from 'react'
 import Topic from './_components/Topic'
 import { useState } from 'react'
+import VideoStyle from './_components/VideoStyle'
 
 function CreateNewVideo() {
 
@@ -23,7 +24,7 @@ function CreateNewVideo() {
                         {/* Topic and Script */}
                         <Topic onHandleInputChange={onHandleInputChange}/>
                         {/* Video Image Style */}
-
+                        <VideoStyle onHandleInputChange={onHandleInputChange}/>
                         {/* Voice */}
 
                         {/* Captions */}
