@@ -52,9 +52,9 @@ function AppSidebar() {
             <div>
                 <div className='flex items-center gap-3 w-full justify-center mt-5'>
                     <Image src ={'/logo.svg'} alt='logo' width={40} height={40}/>
-                    <h2 className='font-bold text-2xl'>Video Gen</h2>
+                    <h2 className='font-bold text-2xl'>ThinkSage AI</h2>
                 </div>
-                <h2 className='text-lg text-gray-400 text-center mt-3'>AI Short Video Generator</h2>
+                <h2 className='text-lg text-gray-400 text-center mt-3'>Science Video Generator</h2>
             </div>
         </SidebarHeader>
         <SidebarContent>
