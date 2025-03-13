@@ -60,8 +60,10 @@ function AppSidebar() {
         <SidebarContent>
             <SidebarGroup>
                 <SidebarGroupContent>
-                    <div className ='mx-5 mt-8'>
-                        <Button className ="w-full">+ Create New Video</Button>
+                    <div className ='mx-3 mt-8'>
+                        <Link href={'/create-new-video'}>
+                            <Button className ="w-full">+ Create New Video</Button>
+                        </Link>
                     </div>
                     <SidebarMenu>
                         {MenuItems.map((menu,index)=>(
@@ -81,7 +83,7 @@ function AppSidebar() {
         </SidebarContent>
         <SidebarFooter>
             <div className="p-8 border rounded-lg mb-6 bg-gray-800">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-3">
                     <Gem className='text-gray-400'/>
                     <h2 className='text-gray-400'>{user?.credits} Credits Left</h2>
                 </div>
