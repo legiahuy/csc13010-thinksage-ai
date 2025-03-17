@@ -1,6 +1,8 @@
 import { inngest } from "./client";
 import axios from 'axios';
 import { GenerateImageScript } from "../frontend/configs/AiModel";
+import { api } from "@/convex/_generated/api";
+import { ConvexHttpClient } from "convex/browser";
 
 
 
@@ -30,7 +32,8 @@ export const GenerateVideoData = inngest.createFunction(
   { event: "generate-video-data" },
   async ({ event, step }) => {
     
-    const {script, topic, voice, videoStyle, caption, title} = event?.data;
+    const {script, topic, voice, videoStyle, caption, title, recordId} = event?.data;
+    const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
     //generate audio
     const GenerateAudioFile = await step.run(
         "generateAudioFile",
@@ -108,7 +111,20 @@ export const GenerateVideoData = inngest.createFunction(
       }
     )
     //Save all to db
-    return GenerateImages
+    const UpdateDB = await step.run(
+      "updateDB",
+      async()=>{
+        const result = await convex.mutation(api.videoData.UpdateVideoRecord,{
+          recordId: recordId,
+          audioUrl: GenerateAudioFile,
+          images: GenerateImages,
+          captionJson: GenerateCaptions
+        })
+        return result;
+      }
+    )
+
+    return UpdateDB
     }
 );
 
