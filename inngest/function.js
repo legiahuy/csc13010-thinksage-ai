@@ -1,6 +1,8 @@
 import { inngest } from "./client";
 import axios from 'axios';
 
+
+
 export const helloWorld = inngest.createFunction(
   { id: "hello-world" },
   { event: "test/hello.world" },
@@ -10,7 +12,9 @@ export const helloWorld = inngest.createFunction(
   }
 );
 
+const { createClient } = require("@deepgram/sdk");
 const BASE_URL='https://aigurulab.tech';
+
 export const GenerateVideoData = inngest.createFunction(
   { id: "generate-video-data" },
   { event: "generate-video-data" },
@@ -37,13 +41,30 @@ export const GenerateVideoData = inngest.createFunction(
         }
     )
     //generate captions
+    const GenerateCaptions = await step.run(
+      "generateCaptions",
+      async()=>{
+        const deepgram = createClient(process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY);
 
+        const { result, error } = await deepgram.listen.prerecorded.transcribeUrl(
+          {
+            url: GenerateAudioFile,
+          },
+          // STEP 3: Configure Deepgram options for audio analysis
+          {
+            model: "nova-3",
+          }
+          
+        );
+        return result.results?.channels[0]?.alternatives[0]?.words;
+      }
+    )
     //generate image prompt
 
     //generate image
 
     //Save all to db
-    return GenerateAudioFile
+    return GenerateCaptions
     }
 );
 
