@@ -9,10 +9,14 @@ import { WandSparkles } from 'lucide-react'
 import {Button} from '@/components/ui/button'
 import Preview from './_components/Preview'
 import axios from 'axios'
+import { api } from '@/convex/_generated/api'
+import { useAuthContext } from '@/app/providers'
+import { useMutation } from 'convex/react'
 function CreateNewVideo() { 
 
     const [formData,setFormData]=useState();
-
+    const CreateInitialVideoRecord=useMutation(api.videoData.CreateVideoData);
+    const {user}=useAuthContext();
     const onHandleInputChange=(fieldName,fieldValue)=>{
         setFormData(prev=>({
             ...prev,
@@ -24,11 +28,26 @@ function CreateNewVideo() {
     const GenerateVideo=async()=>{
         if(!formData?.topic || !formData?.script || !formData?.voice || !formData?.videoStyle || !formData?.caption){
             console.log('Error: Please fill all fields');
+            return;
         }
+
+        //save data
+        const resp = await CreateInitialVideoRecord({
+            title: formData.title,
+            script: formData.script,
+            topic: formData.topic,
+            voice: formData.voice,
+            videoStyle: formData.videoStyle,
+            caption: formData.caption,
+            uid: user?._id,
+            createdBy: user?.email,
+        })
+        console.log(resp);
+        /*
         const result = await axios.post('/api/generate-video-data',{
             ...formData
         })
-        console.log(result);
+        console.log(result);*/
     }
 
     return (
