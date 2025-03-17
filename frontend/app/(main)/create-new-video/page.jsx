@@ -5,7 +5,7 @@ import { useState } from 'react'
 import VideoStyle from './_components/VideoStyle'
 import Voice from './_components/Voice'
 import Captions from './_components/Captions'
-import { WandSparkles } from 'lucide-react'
+import { Loader2Icon, WandSparkles } from 'lucide-react'
 import {Button} from '@/components/ui/button'
 import Preview from './_components/Preview'
 import axios from 'axios'
@@ -17,6 +17,7 @@ function CreateNewVideo() {
     const [formData,setFormData]=useState();
     const CreateInitialVideoRecord=useMutation(api.videoData.CreateVideoData);
     const {user}=useAuthContext();
+    const [loading,setLoading]=useState(false);
     const onHandleInputChange=(fieldName,fieldValue)=>{
         setFormData(prev=>({
             ...prev,
@@ -30,7 +31,7 @@ function CreateNewVideo() {
             console.log('Error: Please fill all fields');
             return;
         }
-
+        setLoading(true);
         //save data
         const resp = await CreateInitialVideoRecord({
             title: formData.title,
@@ -43,11 +44,12 @@ function CreateNewVideo() {
             createdBy: user?.email,
         })
         console.log(resp);
-        /*
+        
         const result = await axios.post('/api/generate-video-data',{
             ...formData
         })
-        console.log(result);*/
+        console.log(result);
+        setLoading(false);
     }
 
     return (
@@ -64,8 +66,9 @@ function CreateNewVideo() {
                         {/* Captions */}
                         <Captions onHandleInputChange={onHandleInputChange}/>
                         <Button className="w-full mt-5"
+                        disabled={loading}
                         onClick={GenerateVideo}
-                        ><WandSparkles/>Generate Video</Button>
+                        > {loading?<Loader2Icon className='animate-spin' />: <WandSparkles/> } Generate Video</Button>
                 </div>
                 <div>
                     <Preview formData={formData}/>
