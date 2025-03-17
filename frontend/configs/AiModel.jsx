@@ -37,6 +37,35 @@ const {
             },
         ],
     });
-  
+
+     export const GenerateImageScript = model.startChat({
+        generationConfig,
+        history: [
+          {
+            role: "user",
+            parts: [
+              {text: "const ImagePromptScript = `Generate Image prompt of {style} style with all details for each scene for a 30 second video: script: {script}\n- Do not give camera angles image prompt\n- Follow the schema and return JSON data (4-5 images max)\n- [\n    {\n        imagePrompt: '',\n        sceneContent: '<Script content>'\n    }\n]`;\n"},
+            ],
+          },
+          {
+            role: "model",
+            parts: [
+              {text: "Okay, I understand. I will generate a JSON output containing image prompts based on your provided script and style, following your specifications.\n\nHere's the structure I will use for the JSON output:\n\n```json\n[\n    {\n        \"imagePrompt\": \"Detailed image prompt describing the visual elements of the scene in {style} style, focusing on subject, setting, lighting, colors, and mood.\",\n        \"sceneContent\": \"<Corresponding script content for this scene>\"\n    },\n    {\n        \"imagePrompt\": \"Detailed image prompt describing the visual elements of the scene in {style} style, focusing on subject, setting, lighting, colors, and mood.\",\n        \"sceneContent\": \"<Corresponding script content for this scene>\"\n    },\n    {\n        \"imagePrompt\": \"Detailed image prompt describing the visual elements of the scene in {style} style, focusing on subject, setting, lighting, colors, and mood.\",\n        \"sceneContent\": \"<Corresponding script content for this scene>\"\n    },\n    {\n        \"imagePrompt\": \"Detailed image prompt describing the visual elements of the scene in {style} style, focusing on subject, setting, lighting, colors, and mood.\",\n        \"sceneContent\": \"<Corresponding script content for this scene>\"\n    }\n]\n```\n\n**Important:** I need you to provide the following:\n\n1.  **`{style}`:**  The artistic style you want the image prompts to be based on (e.g., \"photorealistic\", \"impressionist painting\", \"anime\", \"cyberpunk\", \"cartoon\", \"pixel art\", \"watercolor illustration\", etc.).\n2.  **`{script}`:**  The script for the 30-second video.  Please provide the full script so I can break it down into scenes and generate appropriate image prompts.\n\nOnce you provide the style and script, I'll generate the JSON output with the image prompts and corresponding scene content.  I will ensure the image prompts don't include camera angles.\n"},
+            ],
+          },
+          {
+            role: "user",
+            parts: [
+              {text: "Realistic\n\nDuring World War II, Navajo code talkers played a crucial role. These brave Marines used their native language to transmit secret messages. The Navajo code was unbreakable, baffling the enemy. Their contributions were vital to the Allied victory. The Navajo code talkers were true heroes, their story a testament to ingenuity and dedication. They helped change the course of history.  "},
+            ],
+          },
+          {
+            role: "model",
+            parts: [
+              {text: "```json\n[\n    {\n        \"imagePrompt\": \"Photorealistic scene depicting a group of Navajo Marines in World War II uniforms standing in a dimly lit communications tent.  Radios and maps are scattered around.  Focus is on their determined faces as they listen intently to the radio.  Warm, muted color palette with hints of tension in the air. Authentic WWII era details.\",\n        \"sceneContent\": \"During World War II, Navajo code talkers played a crucial role.\"\n    },\n    {\n        \"imagePrompt\": \"Realistic depiction of a Navajo Marine speaking rapidly into a vintage radio handset, transmitting a message.  Sweat is on his brow.  He is surrounded by other Marines working with maps and communication equipment. Focus on the focused expression on his face.  Background shows a slightly blurred image of a war-torn landscape. Dark green and brown color tones dominate the scene.\",\n        \"sceneContent\": \"These brave Marines used their native language to transmit secret messages.\"\n    },\n    {\n        \"imagePrompt\": \"Photorealistic depiction of Japanese soldiers in a command center, frustrated and bewildered, surrounded by papers filled with seemingly gibberish code. The room is cluttered with maps and communication devices. One officer slams his fist on the table in anger. Cold, harsh lighting creates a sense of desperation. Grays, blacks, and browns are the primary colors.\",\n        \"sceneContent\": \"The Navajo code was unbreakable, baffling the enemy.\"\n    },\n    {\n        \"imagePrompt\": \"A wide shot showing a group of Navajo code talkers in a field, silhouetted against a vibrant sunrise. They are looking towards the rising sun with a sense of hope and accomplishment. The sky is a mix of orange, red, and gold.  Focus is on their strong, proud silhouettes. The landscape is rugged and war-torn but showing signs of regrowth.\",\n        \"sceneContent\": \"Their contributions were vital to the Allied victory. The Navajo code talkers were true heroes, their story a testament to ingenuity and dedication. They helped change the course of history.\"\n    }\n]\n```\n"},
+            ],
+          },
+        ],
+      });
     // const result = await chatSession.sendMessage("INSERT_INPUT_HERE");
     // console.log(result.response.text());

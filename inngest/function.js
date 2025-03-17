@@ -1,5 +1,6 @@
 import { inngest } from "./client";
 import axios from 'axios';
+import { GenerateImageScript } from "../frontend/configs/AiModel";
 
 
 
@@ -14,6 +15,15 @@ export const helloWorld = inngest.createFunction(
 
 const { createClient } = require("@deepgram/sdk");
 const BASE_URL='https://aigurulab.tech';
+const ImagePromptScript = `Generate Image prompt of {style} style with all details for each scene for a 30 second video: script: {script}
+- Do not give camera angles image prompt
+- Follow the schema and return JSON data (4-5 images max)
+- [
+    {
+        imagePrompt: '',
+        sceneContent: '<Script content>'
+    }
+]`;
 
 export const GenerateVideoData = inngest.createFunction(
   { id: "generate-video-data" },
@@ -60,11 +70,19 @@ export const GenerateVideoData = inngest.createFunction(
       }
     )
     //generate image prompt
-
+    const GenerateImagePrompt = await step.run(
+      "generateImagePrompt",
+      async()=>{
+        const FINAL_SCRIPT = ImagePromptScript.replace('{style}', videoStyle).replace('{script}', script);
+        const result = await GenerateImageScript.sendMessage(FINAL_SCRIPT)
+        const resp= JSON.parse(result.response.text());
+        return resp;
+      }
+    )
     //generate image
 
     //Save all to db
-    return GenerateCaptions
+    return GenerateImagePrompt
     }
 );
 
