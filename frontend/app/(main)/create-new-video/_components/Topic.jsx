@@ -87,7 +87,9 @@ function Topic({onHandleInputChange}) {
                             className={`p-3 border rounded-lg cursor-pointer
                             ${selecetedScriptIndex==index && 'border-white bg-secondary'}
                             `}
-                                onClick={()=>setSelectedScriptIndex(index)}
+                                onClick={()=>{setSelectedScriptIndex(index);
+                                    onHandleInputChange('script',item?.content)
+                                }}
                             >
                                 <h2 className='line-clamp-4 text-sm text-gray-300'>{item.content}</h2>
                             </div>

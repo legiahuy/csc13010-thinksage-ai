@@ -1,4 +1,5 @@
 import { inngest } from "./client";
+import axios from 'axios';
 
 export const helloWorld = inngest.createFunction(
   { id: "hello-world" },

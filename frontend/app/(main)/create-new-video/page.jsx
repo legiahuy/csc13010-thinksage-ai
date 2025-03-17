@@ -8,8 +8,8 @@ import Captions from './_components/Captions'
 import { WandSparkles } from 'lucide-react'
 import {Button} from '@/components/ui/button'
 import Preview from './_components/Preview'
-
-function CreateNewVideo() {
+import axios from 'axios'
+function CreateNewVideo() { 
 
     const [formData,setFormData]=useState();
 
@@ -20,7 +20,17 @@ function CreateNewVideo() {
         }))
         console.log(formData);
     }
-    
+
+    const GenerateVideo=async()=>{
+        if(!formData?.topic || !formData?.script || !formData?.voice || !formData?.videoStyle || !formData?.caption){
+            console.log('Error: Please fill all fields');
+        }
+        const result = await axios.post('/api/generate-video-data',{
+            ...formData
+        })
+        console.log(result);
+    }
+
     return (
         <div>
             <h2 className='text-3xl'>Create New Video</h2>
@@ -34,7 +44,9 @@ function CreateNewVideo() {
                         <Voice onHandleInputChange={onHandleInputChange}/>
                         {/* Captions */}
                         <Captions onHandleInputChange={onHandleInputChange}/>
-                        <Button className="w-full mt-5"><WandSparkles/>Generate Video</Button>
+                        <Button className="w-full mt-5"
+                        onClick={GenerateVideo}
+                        ><WandSparkles/>Generate Video</Button>
                 </div>
                 <div>
                     <Preview formData={formData}/>
