@@ -1,6 +1,6 @@
 module.exports = {
   "frontend/**/*.{js,jsx,ts,tsx}": [
-    "cd frontend && eslint --fix",
+    "eslint --fix",
     "prettier --write"
   ],
   "backend/**/*.{js,jsx,ts,tsx}": [
