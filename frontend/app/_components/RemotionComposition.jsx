@@ -10,21 +10,22 @@ import {
   useVideoConfig,
 } from 'remotion';
 
-function RemotionComposition({ videoData, setDurationInFrame }) {
+function RemotionComposition({ videoData }) {
   const captions = videoData?.captionJson;
   const { fps } = useVideoConfig();
   const imageList = videoData?.images;
   const frame = useCurrentFrame();
 
   useEffect(() => {
-    if (videoData) {
-      const totalDuration = captions[captions.length - 1]?.end * fps;
-      setDurationInFrame(totalDuration);
-    }
-  }, [videoData, fps, setDurationInFrame]);
+    videoData && getDurationFrame();
+  }, [videoData]);
 
   const getDurationFrame = () => {
-    return captions?.[captions.length - 1]?.end * fps || 100;
+    const totalDuration = captions[captions?.length - 1]?.end * fps;
+    console.log(totalDuration);
+    //setDurationInFrame(totalDuration);
+
+    return totalDuration;
   };
 
   const getCurrentCaption = () => {
