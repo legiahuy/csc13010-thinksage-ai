@@ -1,21 +1,12 @@
 import { inngest } from "./client";
 import axios from 'axios';
-import { GenerateImageScript } from "../frontend/configs/AiModel";
+import { GenerateImageScript } from "../configs/AiModel";
 import { api } from "@/convex/_generated/api";
 import { ConvexHttpClient } from "convex/browser";
 import {getServices, renderMediaOnCloudrun} from '@remotion/cloudrun/client';
+import { createClient } from "@deepgram/sdk";
 
 
-export const helloWorld = inngest.createFunction(
-  { id: "hello-world" },
-  { event: "test/hello.world" },
-  async ({ event, step }) => {
-    await step.sleep("wait-a-moment", "1s");
-    return { message: `Hello ${event.data.email}!` };
-  }
-);
-
-const { createClient } = require("@deepgram/sdk");
 const BASE_URL='https://aigurulab.tech';
 const ImagePromptScript = `Generate Image prompt of {style} style with all details for each scene for a 30 second video: script: {script}
 - Do not give camera angles image prompt
@@ -31,8 +22,7 @@ export const GenerateVideoData = inngest.createFunction(
   { id: "generate-video-data" },
   { event: "generate-video-data" },
   async ({ event, step }) => {
-    
-    const {script, topic, voice, videoStyle, caption, title, recordId} = event?.data;
+    const {script, voice, videoStyle, recordId} = event?.data;
     const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
     //generate audio
     const GenerateAudioFile = await step.run(
@@ -59,7 +49,7 @@ export const GenerateVideoData = inngest.createFunction(
       async()=>{
         const deepgram = createClient(process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY);
 
-        const { result, error } = await deepgram.listen.prerecorded.transcribeUrl(
+        const { result} = await deepgram.listen.prerecorded.transcribeUrl(
           {
             url: GenerateAudioFile,
           },

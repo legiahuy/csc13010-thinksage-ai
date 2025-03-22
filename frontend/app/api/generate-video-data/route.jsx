@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { inngest } from "../../../../inngest/client";
+import { inngest } from "../../../inngest/client";
 
 export async function POST(req) {
     const formData = await req.json();
