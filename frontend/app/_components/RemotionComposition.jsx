@@ -16,6 +16,8 @@ function RemotionComposition({ videoData }) {
   const imageList = videoData?.images;
   const frame = useCurrentFrame();
 
+  
+
   useEffect(() => {
     videoData && getDurationFrame();
   }, [videoData]);
@@ -35,6 +37,17 @@ function RemotionComposition({ videoData }) {
     );
     return currentCaption ? currentCaption.word : '';
   };
+
+  const getCurrentCaptionStyle = () => {
+    const currentTime = frame / 30;
+    const currentCaption = captions?.find(
+      (item) => currentTime >= item.start && currentTime <= item.end
+    );
+  
+    // Get the style from videoData.caption based on the current caption
+    return currentCaption ? videoData?.caption?.style || '' : '';
+  };
+  
 
   return (
     <div>
@@ -70,14 +83,13 @@ function RemotionComposition({ videoData }) {
       </AbsoluteFill>
       <AbsoluteFill
         style={{
-          color: 'white',
+          color: 'yellow',
           justifyContent: 'center',
-          bottom: 50,
-          height: 150,
+          bottom: 20,
           textAlign: 'center',
         }}
       >
-        <h2>{getCurrentCaption()}</h2>
+        <h2 className={getCurrentCaptionStyle()}>{getCurrentCaption()}</h2>
       </AbsoluteFill>
       {videoData?.audioUrl && <Audio src={videoData?.audioUrl} />}
     </div>

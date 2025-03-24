@@ -15,7 +15,7 @@ export const RemotionRoot = () => {
     <>
       <Composition
         id="youtubeShort"
-        component={MyComposition}
+        component={RemotionComposition}
         durationInFrames={Number(
           (videoData?.captionJson[videoData?.captionJson?.length - 1]?.end * 30).toFixed(0)
         )}
