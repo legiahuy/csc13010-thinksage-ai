@@ -165,4 +165,3 @@ export const GenerateVideoData = inngest.createFunction(
     return RenderVideo;
     }
 );
-

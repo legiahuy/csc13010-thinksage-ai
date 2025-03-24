@@ -2,6 +2,7 @@ import React from 'react';
 import { Composition } from 'remotion';
 import { MyComposition } from './Composition';
 import RemotionComposition from './../app/_components/RemotionComposition';
+import { GenerateImages,GenerateCaptions,GenerateAudioFile } from '../inngest/function';
 
 const videoData = {
   audioUrl: GenerateAudioFile,

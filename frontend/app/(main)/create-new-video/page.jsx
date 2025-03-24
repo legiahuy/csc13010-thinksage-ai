@@ -12,11 +12,15 @@ import axios from 'axios';
 import { api } from '@/convex/_generated/api';
 import { useAuthContext } from '@/app/providers';
 import { useMutation } from 'convex/react';
+import { useRouter } from 'next/navigation';
+
 function CreateNewVideo() {
   const [formData, setFormData] = useState();
   const CreateInitialVideoRecord = useMutation(api.videoData.CreateVideoData);
   const { user } = useAuthContext();
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
   const onHandleInputChange = (fieldName, fieldValue) => {
     setFormData((prev) => ({
       ...prev,
@@ -62,6 +66,8 @@ function CreateNewVideo() {
 
     console.log(result);
     setLoading(false);
+
+    router.push('/dashboard');
   };
 
   return (
