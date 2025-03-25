@@ -12,11 +12,9 @@ import {
 
 function RemotionComposition({ videoData }) {
   const captions = videoData?.captionJson;
-  const { fps } = useVideoConfig();
+  const { fps, width, height } = useVideoConfig();
   const imageList = videoData?.images;
   const frame = useCurrentFrame();
-
-  
 
   useEffect(() => {
     videoData && getDurationFrame();
@@ -24,9 +22,6 @@ function RemotionComposition({ videoData }) {
 
   const getDurationFrame = () => {
     const totalDuration = captions[captions?.length - 1]?.end * fps;
-    console.log(totalDuration);
-    //setDurationInFrame(totalDuration);
-
     return totalDuration;
   };
 
@@ -43,14 +38,12 @@ function RemotionComposition({ videoData }) {
     const currentCaption = captions?.find(
       (item) => currentTime >= item.start && currentTime <= item.end
     );
-  
-    // Get the style from videoData.caption based on the current caption
+
     return currentCaption ? videoData?.caption?.style || '' : '';
   };
-  
 
   return (
-    <div>
+    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
       <AbsoluteFill>
         {imageList?.map((item, index) => {
           const startTime = (index * getDurationFrame()) / imageList.length;
@@ -81,16 +74,43 @@ function RemotionComposition({ videoData }) {
           );
         })}
       </AbsoluteFill>
+
+      {/* Centered Caption Container */}
       <AbsoluteFill
         style={{
-          color: 'yellow',
+          display: 'flex',
           justifyContent: 'center',
-          bottom: 20,
-          textAlign: 'center',
+          alignItems: 'center',
+          pointerEvents: 'none',
+          paddingTop: '100%',
         }}
       >
-        <h2 className={getCurrentCaptionStyle()}>{getCurrentCaption()}</h2>
+        <div
+          style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            borderRadius: '12px',
+            padding: '10px 20px',
+            maxWidth: '80%',
+            textAlign: 'center',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          <h2
+            className={getCurrentCaptionStyle()}
+            style={{
+              fontSize: '40px',
+              margin: 0,
+              textAlign: 'center',
+              width: '100%',
+            }}
+          >
+            {getCurrentCaption()}
+          </h2>
+        </div>
       </AbsoluteFill>
+
       {videoData?.audioUrl && <Audio src={videoData?.audioUrl} />}
     </div>
   );
