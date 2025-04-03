@@ -12,25 +12,40 @@ import {
 } from '@/components/ui/sidebar';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { HomeIcon, LucideFileVideo } from 'lucide-react';
+import { HomeIcon, LucideFileVideo, LogOut } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useAuthContext } from '@/app/providers';
 
 const MenuItems = [
   {
     title: 'Home',
     url: '/dashboard',
     icon: HomeIcon,
+    type: 'link',
   },
   {
     title: 'Create New Video',
     url: '/create-new-video',
     icon: LucideFileVideo,
+    type: 'link',
+  },
+  {
+    title: 'Log out',
+    icon: LogOut,
+    type: 'action',
+    action: 'logout',
   },
 ];
 
 function AppSidebar() {
   const path = usePathname();
+  const router = useRouter();
+  const { signOut } = useAuthContext();
+  const handleLogout = async () => {
+    await signOut();
+    router.push('/');
+  };
   return (
     <Sidebar>
       <SidebarHeader>
@@ -53,9 +68,9 @@ function AppSidebar() {
               </Link>
             </div>
             <SidebarMenu>
-              {MenuItems.map((menu, index) => (
+              {MenuItems.filter((menu) => menu.type === 'link').map((menu, index) => (
                 <SidebarMenuItem className="mt-3 mx-3" key={index}>
-                  <SidebarMenuButton isActive={path == menu.url} className="p-5">
+                  <SidebarMenuButton isActive={path === menu.url} className="p-5">
                     <Link href={menu.url} className="flex items-center gap-4 p-3">
                       <menu.icon />
                       <span>{menu.title}</span>
@@ -63,6 +78,22 @@ function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+
+              {MenuItems.filter((menu) => menu.type === 'action' && menu.action === 'logout').map(
+                (menu, index) => (
+                  <SidebarMenuItem className="mt-1 mx-3" key={`action-${index}`}>
+                    <div className="px-5">
+                      <div
+                        className="flex items-center gap-4 p-3 cursor-pointer hover:bg-slate-800 rounded-md transition-colors"
+                        onClick={handleLogout}
+                      >
+                        <menu.icon />
+                        <span>{menu.title}</span>
+                      </div>
+                    </div>
+                  </SidebarMenuItem>
+                )
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

@@ -1,7 +1,7 @@
 'use client';
 import React, { useContext, useEffect, useState } from 'react';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
 import { auth } from '@/configs/firebaseConfig';
 import { AuthContext } from './_context/AuthContext';
 import { useMutation } from 'convex/react';
@@ -35,13 +35,23 @@ function Provider({ children }) {
     return () => unsubscribe();
   }, [CreateUser]);
 
+  const signOut = async () => {
+    try {
+      await firebaseSignOut(auth);
+      setUser(null);
+      console.log('User signed out successfully');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
   // Prevent hydration mismatch by only rendering after mounting
   if (!mounted) {
     return null;
   }
 
   return (
-    <AuthContext.Provider value={{ user }}>
+    <AuthContext.Provider value={{ user, signOut }}>
       <NextThemesProvider
         attribute="class"
         defaultTheme="dark"
