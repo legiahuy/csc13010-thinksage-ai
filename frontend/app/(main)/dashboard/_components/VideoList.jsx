@@ -5,27 +5,39 @@ import { useConvex } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import Image from 'next/image';
 import Link from 'next/link';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import moment from 'moment';
 import { RefreshCcw } from 'lucide-react';
 
 function VideoList() {
   const [videoList, setVideoList] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const convex = useConvex();
   const { user } = useAuthContext();
 
-  useEffect(() => {
-    if (user && user._id) {
-      GetUserVideoList();
-    }
-  }, [user]);
-
-  const GetUserVideoList = async () => {
+  const GetUserVideoList = useCallback(async () => {
     if (!user || !user._id) {
       console.log('No user ID available');
+      setIsLoading(false);
       return;
     }
 
+    const GetPendingVideoStatus = (pendingVideo) => {
+      const intervalId = setInterval(async () => {
+        //Get Video Data by Id
+        const result = await convex.query(api.videoData.GetVideoById, {
+          videoId: pendingVideo?._id,
+        });
+        if (result?.status == 'completed') {
+          clearInterval(intervalId);
+          console.log('Video Process Completed');
+          GetUserVideoList();
+        }
+        console.log('Still Pending...');
+      }, 5000);
+    };
+
+    setIsLoading(true);
     // All user videos
     try {
       const result = await convex.query(api.videoData.GetUserVideos, {
@@ -37,36 +49,40 @@ function VideoList() {
       isPendingVideo && GetPendingVideoStatus(isPendingVideo);
     } catch (error) {
       console.error('Error fetching videos:', error);
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [convex, user]);
 
-  const GetPendingVideoStatus = (pendingVideo) => {
-    const intervalId = setInterval(async () => {
-      //Get Video Data by Id
-      const result = await convex.query(api.videoData.GetVideoById, {
-        videoId: pendingVideo?._id,
-      });
-      if (result?.status == 'completed') {
-        clearInterval(intervalId);
-        console.log('Video Process Completed');
-        GetUserVideoList();
-      }
-      console.log('Still Pending...');
-    }, 5000);
-  };
+  useEffect(() => {
+    if (user && user._id) {
+      GetUserVideoList();
+    }
+  }, [user, GetUserVideoList]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <RefreshCcw className="animate-spin mr-2" />
+        <span>Loading videos...</span>
+      </div>
+    );
+  }
 
   return (
     <div>
       {videoList?.length == 0 ? (
         <div className="flex flex-col items-center justify-center mt-28 gap-5 border border-dashed rounded-x py-16">
           <Image src={'/logo.svg'} alt="logo" width={60} height={60} />
-          <h2 className="text-gray-400 text-lg">You dont have any video created. Create new one</h2>
+          <h2 className="text-gray-400 text-lg">
+            You don&apos;t have any video created. Create new one!
+          </h2>
           <Link href={'/create-new-video'}>
             <Button>+ Create New Video</Button>
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-3 xl:-grid-cols-5 gap-5 mt-10">
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5 mt-10">
           {videoList?.map((video, index) => (
             <Link key={index} href={'/play-video/' + video?._id}>
               <div className="relative">
@@ -81,7 +97,7 @@ function VideoList() {
                   />
                 ) : (
                   <div className="aspect-[2/3] p-5 w-full rounded-xl bg-slate-900 flex items-center justify-center">
-                    <RefreshCcw className="animate-spin" />
+                    <RefreshCcw className="animate-spin mr-2" />
                     <h2>Generating...</h2>
                   </div>
                 )}
