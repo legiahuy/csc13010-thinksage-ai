@@ -59,6 +59,7 @@ export const GenerateVideoData = inngest.createFunction(
           }
           
         );
+        //return full result here
         return result.results?.channels[0]?.alternatives[0]?.words;
       }
     )
