@@ -4,9 +4,11 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { SparklesIcon, Loader2Icon } from 'lucide-react';
+import { Loader2Icon, Edit2Icon, SaveIcon, XIcon } from 'lucide-react';
 import axios from 'axios';
 import { useAuthContext } from '@/app/providers';
+import { toast } from 'react-toastify';
+import PropTypes from 'prop-types';
 
 const suggestions = [
   'Historic Story',
@@ -34,10 +36,12 @@ function Topic({ onHandleInputChange }) {
   const { user } = useAuthContext();
   const [AudienceType, setAudienceType] = useState(null);
   const [PurposeType, setPurposeType] = useState(null);
+  const [editingScriptIndex, setEditingScriptIndex] = useState(null);
+  const [editedScript, setEditedScript] = useState('');
 
   // Function to generate the script dynamically
   const GenerateScript = async () => {
-    if (!selectedTopic || !AudienceType || !PurposeType) return; // Ensure all fields are selected
+    if (!selectedTopic || !AudienceType || !PurposeType) return;
     if (user?.credits <= 0) {
       toast('Please add more credits!');
       return;
@@ -62,7 +66,27 @@ function Topic({ onHandleInputChange }) {
   // Automatically call GenerateScript whenever topic, audience, or purpose changes
   useEffect(() => {
     GenerateScript();
-  }, [selectedTopic, AudienceType, PurposeType]); // Dependencies trigger the function
+  }, [selectedTopic, AudienceType, PurposeType]);
+
+  const handleEditScript = (index, content) => {
+    setEditingScriptIndex(index);
+    setEditedScript(content);
+  };
+
+  const handleSaveEdit = (index) => {
+    const updatedScripts = [...scripts];
+    updatedScripts[index].content = editedScript;
+    setScripts(updatedScripts);
+    setEditingScriptIndex(null);
+    if (selectedScriptIndex === index) {
+      onHandleInputChange('script', editedScript);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingScriptIndex(null);
+    setEditedScript('');
+  };
 
   return (
     <div>
@@ -163,17 +187,57 @@ function Topic({ onHandleInputChange }) {
             {scripts.map((item, index) => (
               <div
                 key={index}
-                className={`p-3 border rounded-lg cursor-pointer ${
+                className={`p-3 border rounded-lg relative min-h-[120px] ${
                   selectedScriptIndex === index ? 'border-white bg-secondary' : ''
                 }`}
-                onClick={() => {
-                  setSelectedScriptIndex(index);
-                  onHandleInputChange('script', item?.content);
-                }}
               >
-                <h2 className="line-clamp-4 text-sm text-gray-300">
-                  {item.content}
-                </h2>
+                {editingScriptIndex === index ? (
+                  <div className="space-y-2">
+                    <Textarea
+                      value={editedScript}
+                      onChange={(e) => setEditedScript(e.target.value)}
+                      className="w-full"
+                      rows={4}
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => handleSaveEdit(index)}
+                        className="bg-green-500 hover:bg-green-600"
+                      >
+                        <SaveIcon className="w-4 h-4 mr-1" />
+                        Save
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={handleCancelEdit}>
+                        <XIcon className="w-4 h-4 mr-1" />
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div
+                      className="cursor-pointer pr-10"
+                      onClick={() => {
+                        setSelectedScriptIndex(index);
+                        onHandleInputChange('script', item?.content);
+                      }}
+                    >
+                      <h2 className="line-clamp-4 text-sm text-gray-300">{item.content}</h2>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="absolute bottom-3 right-3"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditScript(index, item.content);
+                      }}
+                    >
+                      <Edit2Icon className="w-4 h-4" />
+                    </Button>
+                  </>
+                )}
               </div>
             ))}
           </div>
@@ -190,5 +254,9 @@ function Topic({ onHandleInputChange }) {
     </div>
   );
 }
+
+Topic.propTypes = {
+  onHandleInputChange: PropTypes.func.isRequired,
+};
 
 export default Topic;
