@@ -9,6 +9,7 @@ import axios from 'axios';
 import { useAuthContext } from '@/app/providers';
 import { toast } from 'react-toastify';
 import PropTypes from 'prop-types';
+import { ExternalLink } from 'lucide-react';
 
 const suggestions = [
   'Historic Story',
@@ -31,13 +32,15 @@ const Purpose = ['Informative', 'Educational', 'Entertainment', 'Motivational'];
 function Topic({ onHandleInputChange }) {
   const [selectedTopic, setSelectedTopic] = useState(null);
   const [selectedScriptIndex, setSelectedScriptIndex] = useState(null);
-  const [scripts, setScripts] = useState(null);
+  const [scripts, setScripts] = useState([]);
   const [loading, setLoading] = useState(false);
   const { user } = useAuthContext();
   const [AudienceType, setAudienceType] = useState(null);
   const [PurposeType, setPurposeType] = useState(null);
   const [editingScriptIndex, setEditingScriptIndex] = useState(null);
   const [editedScript, setEditedScript] = useState('');
+  const [tabMode, setTabMode] = useState('suggestion');
+  const [sources, setSources] = useState([]);
 
   // Function to generate the script dynamically
   const GenerateScript = async () => {
@@ -63,10 +66,31 @@ function Topic({ onHandleInputChange }) {
     setLoading(false);
   };
 
-  // Automatically call GenerateScript whenever topic, audience, or purpose changes
+  const generateFromCrawl = async () => {
+    if (!selectedTopic || !AudienceType || !PurposeType) return;
+
+    setLoading(true);
+    try {
+      const res = await axios.post('/api/crawl-and-summarize', {
+        topic: selectedTopic,
+        audience: AudienceType,
+        purpose: PurposeType,
+      });
+
+      const { script, sources } = res.data;
+      setScripts([{ content: script }]);
+      setSources(sources);
+    } catch (err) {
+      console.error('Error:', err);
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
-    GenerateScript();
-  }, [selectedTopic, AudienceType, PurposeType]);
+    if (tabMode === 'suggestion') {
+      GenerateScript();
+    }
+  }, [selectedTopic, AudienceType, PurposeType, tabMode]);
 
   const handleEditScript = (index, content) => {
     setEditingScriptIndex(index);
@@ -100,7 +124,11 @@ function Topic({ onHandleInputChange }) {
         <h2>Video Topic</h2>
         <p className="text-sm text-gray-600">Select topic for your video</p>
 
-        <Tabs defaultValue="suggestion" className="w-full mt-2">
+        <Tabs
+          defaultValue="suggestion"
+          className="w-full mt-2"
+          onValueChange={(value) => setTabMode(value)}
+        >
           <TabsList>
             <TabsTrigger value="suggestion">Suggestions</TabsTrigger>
             <TabsTrigger value="your_topic">Your Topic</TabsTrigger>
@@ -178,6 +206,20 @@ function Topic({ onHandleInputChange }) {
           ))}
         </div>
       </div>
+      {tabMode === 'your_topic' && (
+        <Button
+          className="mt-5"
+          onClick={() => {
+            if (selectedTopic && AudienceType && PurposeType) {
+              generateFromCrawl();
+            } else {
+              toast('Please select topic, audience and purpose!');
+            }
+          }}
+        >
+          Generate Script
+        </Button>
+      )}
 
       {/* Script Selection */}
       {scripts?.length > 0 && (
@@ -244,11 +286,42 @@ function Topic({ onHandleInputChange }) {
         </div>
       )}
 
+      {sources?.length > 0 && tabMode === 'your_topic' && (
+        <div className="mt-10 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl shadow-md border border-gray-200 overflow-hidden">
+          <div className="px-6 py-5 border-b border-gray-200 bg-white bg-opacity-90">
+            <h3 className="text-xl font-medium text-gray-800 flex items-center">
+              <span className="mr-2">Sources</span>
+              <span className="text-sm text-gray-500 font-normal">({sources.length})</span>
+            </h3>
+          </div>
+
+          <div className="p-5">
+            <ul className="space-y-3 max-h-72 overflow-y-auto pr-2">
+              {sources.map((url, idx) => (
+                <li key={idx} className="group">
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-start p-3 rounded-lg transition-all duration-200 hover:bg-white hover:shadow-sm"
+                  >
+                    <ExternalLink size={18} className="text-blue-500 mt-1 mr-3 flex-shrink-0" />
+                    <span className="text-gray-700 group-hover:text-blue-600 line-clamp-2 break-all">
+                      {url}
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+
       {/* Loader */}
       {loading && (
         <div className="mt-3 flex items-center">
           <Loader2Icon className="animate-spin mr-2" />
-          <span>Regenerating script...</span>
+          <span>Generating script...</span>
         </div>
       )}
     </div>
