@@ -19,13 +19,13 @@ const ImagePromptScript = `Generate Image prompt of {style} style with all detai
 ]`;
 
 export const GenerateVideoData = inngest.createFunction(
-  { id: "generate-video-data" },
-  { event: "generate-video-data" },
+  { id: "generate-video-data-o" },
+  { event: "generate-video-data-o" },
   async ({ event, step }) => {
     const {script, voice, videoStyle, recordId} = event?.data;
     const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
     //generate audio
-    const GenerateAudioFile = await step.run(
+    /*const GenerateAudioFile = await step.run(
         "generateAudioFile",
         async()=>{
             const result = await axios.post(BASE_URL+'/api/text-to-speech',
@@ -63,6 +63,7 @@ export const GenerateVideoData = inngest.createFunction(
         return result.results?.channels[0]?.alternatives[0]?.words;
       }
     )
+    */
     //generate image prompt
     const GenerateImagePrompt = await step.run(
       "generateImagePrompt",
@@ -104,17 +105,18 @@ export const GenerateVideoData = inngest.createFunction(
     //Save all to db
     const UpdateDB = await step.run(
       "updateDB",
-      async()=>{
-        const result = await convex.mutation(api.videoData.UpdateVideoRecord,{
+      async()=> {
+        const result = await convex.mutation(api.videoData.UpdateImg, {
           recordId: recordId,
-          audioUrl: GenerateAudioFile,
+          audioUrl: 'temp', // Pass undefined if audioUrl is not generated
           images: GenerateImages,
-          captionJson: GenerateCaptions
-        })
+          captionJson: 'temp', // Adjust as needed
+          downloadUrl: 'temp', // Adjust as needed
+        });
         return result;
       }
     )
-
+    /*
     const RenderVideo = await step.run(
       "renderVideo",
       async()=>{
@@ -149,7 +151,7 @@ export const GenerateVideoData = inngest.createFunction(
           return result?.publicUrl;
       }
     )
-
+    
     const UpdateDownloadUrl=await step.run(
       'UpdateDownloadUrl',
       async()=>{
@@ -163,6 +165,130 @@ export const GenerateVideoData = inngest.createFunction(
           return result;
       }
     )
-    return RenderVideo;
+    return RenderVideo;*/
     }
 );
+
+export const VideoInitialization = inngest.createFunction(
+  {id: "vid-init"},
+  {event: "vid-init"},
+  async ({ event, step }) => {}
+);
+
+export const GenImg = inngest.createFunction(
+  { id: "preview-images" },
+  { event: "preview-images" },
+  async ({ event, step }) => {
+    const {script, videoStyle, recordId} = event?.data;
+    const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
+    
+    const GenerateImagePrompt = await step.run(
+      "generateImagePrompt",
+      async()=>{
+        const FINAL_SCRIPT = ImagePromptScript.replace('{style}', videoStyle).replace('{script}', script);
+        const result = await GenerateImageScript.sendMessage(FINAL_SCRIPT)
+        const resp= JSON.parse(result.response.text());
+        return resp;
+      }
+    )
+    //generate image
+    const GenerateImages = await step.run(
+      "generateImages",
+      async()=>{
+        let images = [];
+        images = await Promise.all(
+          GenerateImagePrompt.map(async(element)=>{
+            const result = await axios.post(BASE_URL+'/api/generate-image',
+              {
+                  width: 1024,
+                  height: 1024,
+                  input: element?.imagePrompt,
+                  model: 'sdxl',//'flux'
+                  aspectRatio:"1:1"//Applicable to Flux model only
+              },
+              {
+                  headers: {
+                      'x-api-key': process.env.NEXT_PUBLIC_AIGURULAB_API_KEY, // Your API Key
+                      'Content-Type': 'application/json', // Content Type
+                  },
+              })
+            console.log(result.data.image) //Output Result: Base 64 Image
+              return result.data.image;
+          })
+        )
+        return images;
+      }
+    )
+    //Save all to db
+    const UpdateDB = await step.run(
+      "updateDB",
+      async()=> {
+        const result = await convex.mutation(api.videoData.UpdateImages, {
+          recordId: recordId,
+          images: GenerateImages,
+        });
+        return result;
+      }
+    )
+    }
+);
+
+export const GenAudio = inngest.createFunction(
+  {id: "preview-audio"},
+  {event: "preview-audio"},
+  async ({ event, step }) => {
+    const {script, voice, recordId} = event?.data;
+    const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
+    //generate audio
+    const GenerateAudioFile = await step.run(
+      "generateAudioFile",
+      async()=>{
+          const result = await axios.post(BASE_URL+'/api/text-to-speech',
+              {
+                  input: script,
+                  voice: voice
+              },
+              {
+                  headers: {
+                      'x-api-key': process.env.NEXT_PUBLIC_AIGURULAB_API_KEY, // Your API Key
+                      'Content-Type': 'application/json', // Content Type
+                  },
+              })
+           console.log(result.data.audio) //Output Result: Audio Mp3 Url
+          return result.data.audio;
+      }
+  )
+  //generate captions
+  const GenerateCaptions = await step.run(
+    "generateCaptions",
+    async()=>{
+      const deepgram = createClient(process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY);
+
+      const { result} = await deepgram.listen.prerecorded.transcribeUrl(
+        {
+          url: GenerateAudioFile,
+        },
+        // STEP 3: Configure Deepgram options for audio analysis
+        {
+          model: "nova-3",
+        }
+        
+      );
+      //return full result here
+      return result.results?.channels[0]?.alternatives[0]?.words;
+    }
+  )
+  //save to db
+  const UpdateDB = await step.run(
+    "updateDB",
+    async()=> {
+      const result = await convex.mutation(api.videoData.UpdateCaptionsAndAudio, {
+        recordId: recordId,
+        audioUrl: GenerateAudioFile,
+        captionJson: GenerateCaptions,
+      });
+      return result;
+    }
+  )
+  }
+)
