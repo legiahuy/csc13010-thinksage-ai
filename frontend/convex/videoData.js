@@ -1,6 +1,7 @@
 import { mutation } from './_generated/server';
 import { v } from 'convex/values';
 import { query } from './_generated/server';
+import { useQuery } from 'convex/react';
 
 export const CreateVideo = mutation({
   args: {
@@ -136,5 +137,31 @@ export const GetVideoById = query({
   handler: async (ctx, args) => {
     const result = await ctx.db.get(args.videoId);
     return result;
+  },
+});
+
+export const fetchImages = query({
+  args: {
+    videoId: v.optional(v.id('videoData')),
+  },
+  handler: async (ctx, args) => {
+    const videoData = await ctx.db.get(args.videoId);
+    if (!videoData) {
+      throw new Error(`Video data with ID ${args.videoId} not found.`);
+    }
+    return videoData.images; // Return the images field from the videoData document
+  },
+});
+
+export const fetchAudio = query({
+  args:{
+    videoId: v.id('videoData'),
+  },
+  handler: async (ctx,args)=>{
+    const videoData = await ctx.db.get(args.videoId);
+    if(!videoData){
+      throw new Error(`Video data with Id ${args.videoId} not found.`);
+    }
+    return videoData.audioUrl;
   },
 });

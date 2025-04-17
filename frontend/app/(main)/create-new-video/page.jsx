@@ -1,7 +1,6 @@
 'use client';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Topic from './_components/Topic';
-import { useState } from 'react';
 import VideoStyle from './_components/VideoStyle';
 import Voice from './_components/Voice';
 import Captions from './_components/Captions';
@@ -11,11 +10,12 @@ import Preview from './_components/Preview';
 import axios from 'axios';
 import { api } from '@/convex/_generated/api';
 import { useAuthContext } from '@/app/providers';
-import { useMutation } from 'convex/react';
+import { useMutation, useQuery } from 'convex/react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'react-hot-toast'; // Make sure to import toast
 
 function CreateNewVideo() {
-  const [formData, setFormData] = useState();
+  const [formData, setFormData] = useState({});
   const CreateInitialVideoRecord = useMutation(api.videoData.CreateVideoData);
   const GetVideoTitle = useMutation(api.videoData.CreateVideo);
   const { user } = useAuthContext();
@@ -23,7 +23,17 @@ function CreateNewVideo() {
   const router = useRouter();
   const [titleSubmitted, setTitleSubmitted] = useState(false);
 
+  // Fetch images if videoId exists
+  const images = useQuery(
+    api.videoData.fetchImages,
+    formData?.recordId ? { videoId: formData.recordId } : "skip"
+  );
   
+  // Fetch audio if videoId exists
+  const audio = useQuery(
+    api.videoData.fetchAudio,
+    formData?.recordId ? { videoId: formData.recordId } : "skip"
+  );
 
   const onHandleInputChange = (fieldName, fieldValue) => {
     setFormData((prev) => ({
@@ -43,7 +53,7 @@ function CreateNewVideo() {
   
       console.log('Title created by:', response.createdBy);
   
-      // 👇 Save the returned ID into formData
+      // Save the returned ID into formData
       setFormData((prev) => ({
         ...prev,
         recordId: response.id,
@@ -67,11 +77,12 @@ function CreateNewVideo() {
       !formData?.videoStyle ||
       !formData?.caption
     ) {
-      console.log('Error: Please fill all fields');
+      alert('Error: Please fill all fields');
       return;
     }
     setLoading(true);
-    //save data
+    
+    // Save data
     const resp = await CreateInitialVideoRecord({
       recordId: formData.recordId,
       script: formData.script,
@@ -85,16 +96,16 @@ function CreateNewVideo() {
     });
     console.log(resp);
 
-    const result = await axios.post('/api/preview-images', formData);
+    // Generate video
+    const result = await axios.post('/api/generate-video', formData);
     console.log("RecordID:", formData.recordId);
-
     console.log(result);
+    
     setLoading(false);
-
     router.push('/dashboard');
   };
 
-// Audio generation
+  // Audio generation
   const PreviewAudio = async () => {
     if (user?.credits <= 0) {
       toast('Please add more credits!');
@@ -109,29 +120,31 @@ function CreateNewVideo() {
       return;
     }
     setLoading(true);
-    //save data
+    
+    // Save data
     const resp = await CreateInitialVideoRecord({
       recordId: formData.recordId,
       script: formData.script,
       topic: formData.topic,
       voice: formData.voice,
-      videoStyle: formData.videoStyle,
-      caption: formData.caption,
+      videoStyle: formData.videoStyle || "",
+      caption: formData.caption || "",
       uid: user?._id,
       createdBy: user?.email,
       credits: user?.credits,
     });
     console.log(resp);
 
+    // Generate audio preview
     const result = await axios.post('/api/preview-audio', formData);
     console.log("RecordID:", formData.recordId);
-
     console.log(result);
+    
     setLoading(false);
   };
 
-// Image generation
-  const PreviewImages = async () =>{
+  // Image generation
+  const PreviewImages = async () => {
     if (user?.credits <= 0) {
       toast('Please add more credits!');
       return;
@@ -141,30 +154,32 @@ function CreateNewVideo() {
       !formData?.script ||
       !formData?.videoStyle 
     ) {
-      console.log('Error: Please fill all fields');
+      alert('Error: Please fill required fields');
       return;
     }
     setLoading(true);
-    //save data
+    
+    // Save data
     const resp = await CreateInitialVideoRecord({
       recordId: formData.recordId,
       script: formData.script,
       topic: formData.topic,
-      voice: formData.voice,
+      voice: formData.voice || "",
       videoStyle: formData.videoStyle,
-      caption: formData.caption,
+      caption: formData.caption || "",
       uid: user?._id,
       createdBy: user?.email,
       credits: user?.credits,
     });
     console.log(resp);
 
+    // Generate image previews
     const result = await axios.post('/api/preview-images', formData);
     console.log("RecordID:", formData.recordId);
-
     console.log(result);
+    
     setLoading(false);
-  }
+  };
 
   return (
     <div>
@@ -188,31 +203,86 @@ function CreateNewVideo() {
           <div className="col-span-2 p-8 border rounded-xl h-[75vh] overflow-auto">
             {/* Topic and Script */}
             <Topic onHandleInputChange={onHandleInputChange} />
-            
+  
             {/* Video Style */}
             <VideoStyle onHandleInputChange={onHandleInputChange} />
-            <Button className="w-full mt-4" onClick={PreviewImages}>Preview Images</Button>
+            <Button className="w-full mt-4" onClick={PreviewImages}>
+              Preview Images
+            </Button>
   
             {/* Voice */}
             <Voice onHandleInputChange={onHandleInputChange} />
-            <Button className="w-full mt-4" onClick={PreviewAudio}>Preview Audio</Button>
+            <Button className="w-full mt-4" onClick={PreviewAudio}>
+              Preview Audio
+            </Button>
   
             {/* Captions */}
             <Captions onHandleInputChange={onHandleInputChange} />
   
-            <Button className="w-full mt-5" disabled={loading} onClick={GenerateVideo}>
-              {loading ? <Loader2Icon className="animate-spin" /> : <WandSparkles />} Generate Video
+            <Button
+              className="w-full mt-5"
+              disabled={loading}
+              onClick={GenerateVideo}
+            >
+              {loading ? (
+                <Loader2Icon className="animate-spin" />
+              ) : (
+                <>
+                  <WandSparkles className="mr-2" />
+                  Generate Video
+                </>
+              )}
             </Button>
           </div>
   
-          <div>
-            <Preview formData={formData} />
+          <div className="p-4 space-y-4">
+            <h1 className="text-2xl font-bold">Generated Content</h1>
+  
+            {/* Display generated images */}
+            {images && images.length > 0 ? (
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold">Generated Images</h2>
+                <div className="grid grid-cols-2 gap-4">
+                  {images.map((img, idx) => (
+                    <img
+                      key={idx}
+                      src={img}
+                      alt={`Scene ${idx + 1}`}
+                      className="rounded-lg shadow-md w-full"
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-gray-800 rounded-lg p-4 text-center text-gray-400">
+                No images generated yet
+              </div>
+            )}
+  
+            {/* Display generated audio */}
+            {audio ? (
+              <div className="space-y-2">
+                <h2 className="text-xl font-semibold">Generated Audio</h2>
+                <audio controls className="w-full">
+                  <source src={audio} type="audio/mp3" />
+                  Your browser does not support the audio element.
+                </audio>
+              </div>
+            ) : (
+              <div className="bg-gray-800 rounded-lg p-4 text-center text-gray-400">
+                No audio generated yet
+              </div>
+            )}
+  
+            {/* Preview component */}
+            <div>
+              <Preview formData={formData} />
+            </div>
           </div>
         </div>
       )}
     </div>
   );
-  
 }
 
 export default CreateNewVideo;
