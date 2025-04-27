@@ -7,7 +7,7 @@ function Preview({formData}) {
     console.log(selectVideoStyle);
     return formData?.videoStyle && (
         <div className='relative'>
-            <h2 className='mb-3 text-2xl'>Preview</h2>
+            <h4 className="text-lg font-medium mb-3">Preview caption style</h4>
             <Image src={selectVideoStyle?.image} alt={selectVideoStyle?.name}
                 width={1000}
                 height={300}

@@ -1,126 +1,105 @@
-'use client';
-import React, { useState, useEffect } from 'react';
-import Topic from './_components/Topic';
-import VideoStyle from './_components/VideoStyle';
-import Voice from './_components/Voice';
-import Captions from './_components/Captions';
-import { Loader2Icon, WandSparkles } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import Preview from './_components/Preview';
-import axios from 'axios';
-import { api } from '@/convex/_generated/api';
-import { useAuthContext } from '@/app/providers';
-import { useMutation, useQuery } from 'convex/react';
-import { useRouter } from 'next/navigation';
-import { toast } from 'react-hot-toast'; // Make sure to import toast
+"use client"
+import { useRef, useState,useEffect } from "react"
+import Topic from "./_components/Topic"
+import VideoStyle from "./_components/VideoStyle"
+import Voice from "./_components/Voice"
+import Captions from "./_components/Captions"
+import { Loader2Icon, WandSparkles } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import Preview from "./_components/Preview"
+import axios from "axios"
+import { api } from "@/convex/_generated/api"
+import { useAuthContext } from "@/app/providers"
+import { useMutation, useQuery } from "convex/react"
+import { useRouter } from "next/navigation"
 
 function CreateNewVideo() {
-  const [formData, setFormData] = useState({});
-  const CreateInitialVideoRecord = useMutation(api.videoData.CreateVideoData);
-  const GetVideoTitle = useMutation(api.videoData.CreateVideo);
-  const { user } = useAuthContext();
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
-  const [titleSubmitted, setTitleSubmitted] = useState(false);
+  const [formData, setFormData] = useState({})
+  const CreateInitialVideoRecord = useMutation(api.videoData.CreateVideoData)
+  const GetVideoTitle = useMutation(api.videoData.CreateVideo)
+  const { user } = useAuthContext()
+  const [loading, setLoading] = useState(false)
+  const router = useRouter()
+  const [titleSubmitted, setTitleSubmitted] = useState(false)
+  const [audioStatus,setAudio] = useState(false)
+  const [imagesStatus,setImages] = useState(false)
+  const audioRef = useRef(null)
 
   // Fetch images if videoId exists
-  const images = useQuery(
-    api.videoData.fetchImages,
-    formData?.recordId ? { videoId: formData.recordId } : "skip"
-  );
-  
+  const images = useQuery(api.videoData.fetchImages, formData?.recordId ? { videoId: formData.recordId } : "skip")
+
   // Fetch audio if videoId exists
-  const audio = useQuery(
-    api.videoData.fetchAudio,
-    formData?.recordId ? { videoId: formData.recordId } : "skip"
-  );
+  const audio = useQuery(api.videoData.fetchAudio, formData?.recordId ? { videoId: formData.recordId } : "skip")
 
   const onHandleInputChange = (fieldName, fieldValue) => {
     setFormData((prev) => ({
       ...prev,
       [fieldName]: fieldValue,
-    }));
-    console.log(formData);
+    }))
+    console.log(formData)
   }
 
+  useEffect(() => {
+    if (audioRef.current && audio) {
+      audioRef.current.load(); // Force reload the audio element
+    }
+  }, [audio]);
+
+
   const GetTitle = async () => {
-    if (formData?.title && formData.title.trim() !== '') {
+    if (formData?.title && formData.title.trim() !== "") {
       const response = await GetVideoTitle({
         uid: user?._id,
         createdBy: user?.email,
         title: formData.title,
-      });
-  
-      console.log('Title created by:', response.createdBy);
-  
+      })
+
+      console.log("Title created by:", response.createdBy)
+
       // Save the returned ID into formData
       setFormData((prev) => ({
         ...prev,
         recordId: response.id,
-      }));
-  
-      setTitleSubmitted(true);
+      }))
+
+      setTitleSubmitted(true)
     } else {
-      alert('Please enter a title for the video!');
+      alert("Please enter a title for the video!")
     }
-  };
-  
+  }
+
   const GenerateVideo = async () => {
-    if (user?.credits <= 0) {
-      toast('Please add more credits!');
-      return;
-    }
-    if (
-      !formData?.topic ||
-      !formData?.script ||
-      !formData?.voice ||
-      !formData?.videoStyle ||
-      !formData?.caption
-    ) {
-      alert('Error: Please fill all fields');
-      return;
-    }
-    setLoading(true);
-    
-    // Save data
     const resp = await CreateInitialVideoRecord({
       recordId: formData.recordId,
       script: formData.script,
       topic: formData.topic,
-      voice: formData.voice,
+      voice: formData.voice || "",
       videoStyle: formData.videoStyle,
-      caption: formData.caption,
+      caption: formData.caption || "",
       uid: user?._id,
       createdBy: user?.email,
       credits: user?.credits,
-    });
-    console.log(resp);
-
+    })
+    console.log(resp)
     // Generate video
-    const result = await axios.post('/api/generate-video', formData);
-    console.log("RecordID:", formData.recordId);
-    console.log(result);
-    
-    setLoading(false);
-    router.push('/dashboard');
-  };
+    const result = await axios.post("/api/generate-video", formData)
+    console.log("RecordID:", formData.recordId)
+    console.log(result)
+    router.push("/dashboard")
+  }
 
   // Audio generation
   const PreviewAudio = async () => {
     if (user?.credits <= 0) {
-      toast('Please add more credits!');
-      return;
+      alert("Please add more credits!")
+      return
     }
-    if (
-      !formData?.topic ||
-      !formData?.script ||
-      !formData?.voice 
-    ) {
-      alert('Error: Missing fields');
-      return;
+    if (!formData?.topic || !formData?.script || !formData?.voice) {
+      alert("Error: Missing fields")
+      return
     }
-    setLoading(true);
-    
+
+
     // Save data
     const resp = await CreateInitialVideoRecord({
       recordId: formData.recordId,
@@ -132,33 +111,30 @@ function CreateNewVideo() {
       uid: user?._id,
       createdBy: user?.email,
       credits: user?.credits,
-    });
-    console.log(resp);
+    })
+    console.log(resp)
 
     // Generate audio preview
-    const result = await axios.post('/api/preview-audio', formData);
-    console.log("RecordID:", formData.recordId);
-    console.log(result);
-    
-    setLoading(false);
-  };
+    const result = await axios.post("/api/preview-audio", formData)
+    console.log("RecordID:", formData.recordId)
+    console.log(result)
+    setAudio(true);
+
+
+  }
 
   // Image generation
   const PreviewImages = async () => {
     if (user?.credits <= 0) {
-      toast('Please add more credits!');
-      return;
+      alert("Please add more credits!")
+      return
     }
-    if (
-      !formData?.topic ||
-      !formData?.script ||
-      !formData?.videoStyle 
-    ) {
-      alert('Error: Please fill required fields');
-      return;
+    if (!formData?.topic || !formData?.script || !formData?.videoStyle) {
+      alert("Error: Please fill required fields")
+      return
     }
-    setLoading(true);
-    
+
+
     // Save data
     const resp = await CreateInitialVideoRecord({
       recordId: formData.recordId,
@@ -170,119 +146,135 @@ function CreateNewVideo() {
       uid: user?._id,
       createdBy: user?.email,
       credits: user?.credits,
-    });
-    console.log(resp);
+    })
+    console.log(resp)
 
     // Generate image previews
-    const result = await axios.post('/api/preview-images', formData);
-    console.log("RecordID:", formData.recordId);
-    console.log(result);
-    
-    setLoading(false);
-  };
+    const result = await axios.post("/api/preview-images", formData)
+    console.log("RecordID:", formData.recordId)
+    console.log(result)
+    setImages(true);
+
+  }
 
   return (
-    <div>
-      <h2 className="text-3xl">Create New Video</h2>
-  
+    <div className="container mx-auto px-4">
+      {/* Page Header */}
+      <h2 className="text-3xl font-bold border-b border-gray-700 pb-4 mb-6">Create New Video</h2>
+
       {!titleSubmitted ? (
-        <div className="mt-6 space-y-4 max-w-xl">
-          <label className="block text-lg font-medium">Enter Project Title</label>
+        // Title Entry Screen
+        <div className="max-w-xl mx-auto mt-12 p-6 border border-gray-800 rounded-xl bg-gray-900/50">
+          <h3 className="text-xl font-medium mb-4">Enter Project Title</h3>
           <input
             type="text"
-            className="w-full p-2 rounded-md border bg-black text-white"
+            className="w-full p-3 rounded-md border border-gray-700 bg-black text-white mb-4"
             placeholder="My Awesome Video"
-            onChange={(e) => onHandleInputChange('title', e.target.value)}
+            onChange={(e) => onHandleInputChange("title", e.target.value)}
           />
-          <Button className="mt-2" onClick={GetTitle}>
-            Submit
+          <Button className="w-full" onClick={GetTitle}>
+            Continue
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 mt-8 gap-7">
-          <div className="col-span-2 p-8 border rounded-xl h-[75vh] overflow-auto">
-            {/* Topic and Script */}
-            <Topic onHandleInputChange={onHandleInputChange} />
-  
-            {/* Video Style */}
-            <VideoStyle onHandleInputChange={onHandleInputChange} />
-            <Button className="w-full mt-4" onClick={PreviewImages}>
-              Preview Images
-            </Button>
-  
-            {/* Voice */}
-            <Voice onHandleInputChange={onHandleInputChange} />
-            <Button className="w-full mt-4" onClick={PreviewAudio}>
-              Preview Audio
-            </Button>
-  
-            {/* Captions */}
-            <Captions onHandleInputChange={onHandleInputChange} />
-  
-            <Button
-              className="w-full mt-5"
-              disabled={loading}
-              onClick={GenerateVideo}
-            >
-              {loading ? (
-                <Loader2Icon className="animate-spin" />
-              ) : (
-                <>
-                  <WandSparkles className="mr-2" />
-                  Generate Video
-                </>
-              )}
-            </Button>
-          </div>
-  
-          <div className="p-4 space-y-4">
-            <h1 className="text-2xl font-bold">Generated Content</h1>
-  
-            {/* Display generated images */}
-            {images && images.length > 0 ? (
+        // Main Content - Two Column Layout
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left Column - Form */}
+          <div className="lg:col-span-7 border border-gray-800 rounded-xl p-6 bg-gray-900/30">
+            <div className="h-[75vh] overflow-auto pr-2 space-y-8">
+              {/* Topic and Script */}
+              <Topic onHandleInputChange={onHandleInputChange} />
+
+              {/* Video Style */}
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold">Generated Images</h2>
-                <div className="grid grid-cols-2 gap-4">
-                  {images.map((img, idx) => (
-                    <img
-                      key={idx}
-                      src={img}
-                      alt={`Scene ${idx + 1}`}
-                      className="rounded-lg shadow-md w-full"
-                    />
-                  ))}
-                </div>
+                <VideoStyle onHandleInputChange={onHandleInputChange} />
+                <Button className="w-full" variant="outline" onClick={PreviewImages} disabled={loading}>
+                  {loading ? <Loader2Icon className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Preview Images
+                </Button>
               </div>
-            ) : (
-              <div className="bg-gray-800 rounded-lg p-4 text-center text-gray-400">
-                No images generated yet
+
+              {/* Voice */}
+              <div className="space-y-4">
+                <Voice onHandleInputChange={onHandleInputChange} />
+                <Button className="w-full" variant="outline" onClick={PreviewAudio} disabled={loading}>
+                  {loading ? <Loader2Icon className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Preview Audio
+                </Button>
               </div>
-            )}
-  
-            {/* Display generated audio */}
-            {audio ? (
-              <div className="space-y-2">
-                <h2 className="text-xl font-semibold">Generated Audio</h2>
-                <audio controls className="w-full">
-                  <source src={audio} type="audio/mp3" />
-                  Your browser does not support the audio element.
-                </audio>
-              </div>
-            ) : (
-              <div className="bg-gray-800 rounded-lg p-4 text-center text-gray-400">
-                No audio generated yet
-              </div>
-            )}
-  
-            {/* Preview component */}
-            <div>
+
+              {/* Captions */}
+              <Captions onHandleInputChange={onHandleInputChange} />
+
+              {/* Generate Button */}
+              
+            </div>
+          </div>
+
+          {/* Right Column - Preview & Generated Content */}
+          <div className="lg:col-span-5">
+            {/* Generated Content Section */}
+            <div className=" border border-gray-800 rounded-xl p-6 bg-gray-900/30">
+            <div className=" overflow-auto h-[75vh] pr-2 space-y-8">
+              
               <Preview formData={formData} />
+              
+
+              <div className="mt-5 pr-2 space-y-8">
+                {/* Generated Images */}
+                <div className="mb-6">
+                  <h4 className="text-lg font-medium mb-3">Images</h4>
+                  {images && images.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      {images.map((img, idx) => (
+                        <img
+                          key={idx}
+                          src={img || "/placeholder.svg"}
+                          alt={`Scene ${idx + 1}`}
+                          className="rounded-lg shadow-md w-full"
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-gray-800 rounded-lg p-4 text-center text-gray-400">No images generated yet</div>
+                  )}
+                </div>
+
+                {/* Generated Audio */}
+                <div className="mb-4">
+                  <h4 className="text-lg font-medium mb-3">Audio</h4>
+                  {audio ? (
+                    <div className="bg-gray-800 rounded-lg p-3">
+                      <audio ref={audioRef} controls className="w-full">
+                        <source src={audio} type="audio/mp3" />
+                        Your browser does not support the audio element.
+                      </audio>
+                    </div>
+                  ) : (
+                    <div className="bg-gray-800 rounded-lg p-4 text-center text-gray-400">No audio generated yet</div>
+                  )}
+                </div>
+                {(audioStatus && imagesStatus) && (
+                  <Button className="w-full mt-6" size="lg" disabled={loading} onClick={GenerateVideo}>
+                    {loading ? (
+                      <Loader2Icon className="mr-2 h-5 w-5 animate-spin" />
+                    ) : (
+                      <>
+                        <WandSparkles className="mr-2 h-5 w-5" />
+                        Generate Video
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </div>
+        </div>
       )}
     </div>
-  );
+  )
 }
 
-export default CreateNewVideo;
+export default CreateNewVideo
+

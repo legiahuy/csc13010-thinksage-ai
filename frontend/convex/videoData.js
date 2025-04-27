@@ -123,6 +123,7 @@ export const GetUserVideos = query({
     const result = await ctx.db
       .query('videoData')
       .filter((q) => q.eq(q.field('uid'), args.uid))
+      .filter((q) => q.eq(q.field('status'), 'completed'))
       .order('desc')
       .collect();
 
@@ -164,4 +165,23 @@ export const fetchAudio = query({
     }
     return videoData.audioUrl;
   },
+});
+
+export const fetchVideoData = query({
+  args: {
+    videoId: v.id('videoData'),
+  },
+  handler: async (ctx, args) => {
+    const videoData = await ctx.db.get(args.videoId);
+    if (!videoData) {
+      throw new Error(`Video data with ID ${args.videoId} not found.`);
+    }
+
+    return {
+      audioUrl: videoData.audioUrl,
+      captionJson: videoData.captionJson,
+      images: videoData.images,
+      caption: videoData.caption,
+    };
+  }
 });

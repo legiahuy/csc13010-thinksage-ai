@@ -200,6 +200,7 @@ function Topic({ onHandleInputChange }) {
           ))}
         </div>
       </div>
+      <p className='mt-5 text-sm text-gray-400'>Please select topic, audience and purpose to create scripts</p>
       {tabMode === 'your_topic' && (
         <Button
           className="mt-5"
