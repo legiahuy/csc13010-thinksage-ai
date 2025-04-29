@@ -18,52 +18,15 @@ const ImagePromptScript = `Generate Image prompt of {style} style with all detai
     }
 ]`;
 
-export const GenerateVideoData = inngest.createFunction(
-  { id: "generate-video-data" },
-  { event: "generate-video-data" },
-  async ({ event, step }) => {
-    const {script, voice, videoStyle, recordId} = event?.data;
-    const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
-    //generate audio
-    const GenerateAudioFile = await step.run(
-        "generateAudioFile",
-        async()=>{
-            const result = await axios.post(BASE_URL+'/api/text-to-speech',
-                {
-                    input: script,
-                    voice: voice
-                },
-                {
-                    headers: {
-                        'x-api-key': process.env.NEXT_PUBLIC_AIGURULAB_API_KEY, // Your API Key
-                        'Content-Type': 'application/json', // Content Type
-                    },
-                })
-             console.log(result.data.audio) //Output Result: Audio Mp3 Url
-            return result.data.audio;
-        }
-    )
-    //generate captions
-    const GenerateCaptions = await step.run(
-      "generateCaptions",
-      async()=>{
-        const deepgram = createClient(process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY);
 
-        const { result} = await deepgram.listen.prerecorded.transcribeUrl(
-          {
-            url: GenerateAudioFile,
-          },
-          // STEP 3: Configure Deepgram options for audio analysis
-          {
-            model: "nova-3",
-          }
-          
-        );
-        //return full result here
-        return result.results?.channels[0]?.alternatives[0]?.words;
-      }
-    )
-    //generate image prompt
+
+export const GenImg = inngest.createFunction(
+  { id: "preview-images" },
+  { event: "preview-images" },
+  async ({ event, step }) => {
+    const {script, videoStyle, recordId} = event?.data;
+    const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
+    
     const GenerateImagePrompt = await step.run(
       "generateImagePrompt",
       async()=>{
@@ -104,65 +67,130 @@ export const GenerateVideoData = inngest.createFunction(
     //Save all to db
     const UpdateDB = await step.run(
       "updateDB",
-      async()=>{
-        const result = await convex.mutation(api.videoData.UpdateVideoRecord,{
+      async()=> {
+        const result = await convex.mutation(api.videoData.UpdateImages, {
           recordId: recordId,
-          audioUrl: GenerateAudioFile,
           images: GenerateImages,
-          captionJson: GenerateCaptions
-        })
+        });
         return result;
       }
     )
+    }
+);
+
+export const GenAudio = inngest.createFunction(
+  {id: "preview-audio"},
+  {event: "preview-audio"},
+  async ({ event, step }) => {
+    const {script, voice, recordId} = event?.data;
+    const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
+    //generate audio
+    const GenerateAudioFile = await step.run(
+      "generateAudioFile",
+      async()=>{
+          const result = await axios.post(BASE_URL+'/api/text-to-speech',
+              {
+                  input: script,
+                  voice: voice
+              },
+              {
+                  headers: {
+                      'x-api-key': process.env.NEXT_PUBLIC_AIGURULAB_API_KEY, // Your API Key
+                      'Content-Type': 'application/json', // Content Type
+                  },
+              })
+           console.log(result.data.audio) //Output Result: Audio Mp3 Url
+          return result.data.audio;
+      }
+  )
+  //generate captions
+  const GenerateCaptions = await step.run(
+    "generateCaptions",
+    async()=>{
+      const deepgram = createClient(process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY);
+
+      const { result} = await deepgram.listen.prerecorded.transcribeUrl(
+        {
+          url: GenerateAudioFile,
+        },
+        // STEP 3: Configure Deepgram options for audio analysis
+        {
+          model: "nova-3",
+        }
+        
+      );
+      //return full result here
+      return result.results?.channels[0]?.alternatives[0]?.words;
+    }
+  )
+  //save to db
+  const UpdateDB = await step.run(
+    "updateDB",
+    async()=> {
+      const result = await convex.mutation(api.videoData.UpdateCaptionsAndAudio, {
+        recordId: recordId,
+        audioUrl: GenerateAudioFile,
+        captionJson: GenerateCaptions,
+      });
+      return result;
+    }
+  )
+  }
+)
+
+export const GenVideo = inngest.createFunction(
+  { id: "generate-video" },
+  { event: "generate-video" },
+  async ({ event, step }) => {
+    const { captionJson, audioUrl, images, recordId } = event?.data;
+    const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
     const RenderVideo = await step.run(
       "renderVideo",
-      async()=>{
-          const services = await getServices({
-            region: 'us-east1',
-            compatibleOnly: true,
-          });
+      async () => {
+        const services = await getServices({
+          region: 'us-east1',
+          compatibleOnly: true,
+        });
           
-          const serviceName = services[0].serviceName;
+        const serviceName = services[0].serviceName;
 
-          const result = await renderMediaOnCloudrun({
-            serviceName,
-            region: 'us-east1',
-            serveUrl: process.env.GCP_SERVE_URL,
-            composition: 'youtubeShort',
-            inputProps: {
-                videoData:{
-                  audioUrl: GenerateAudioFile,
-                  captionJson: GenerateCaptions,
-                  images: GenerateImages
-                },
-                
+        const result = await renderMediaOnCloudrun({
+          serviceName,
+          region: 'us-east1',
+          serveUrl: process.env.GCP_SERVE_URL,
+          composition: 'youtubeShort',
+          inputProps: {
+            videoData: {
+              audioUrl: audioUrl,
+              captionJson: captionJson,
+              images: images
             },
-            codec: 'h264',
-      
-          });
+          },
+          codec: 'h264',
+        });
            
-          if (result.type === 'success') {
-            console.log(result.bucketName);
-            console.log(result.renderId);
-          }
-          return result?.publicUrl;
+        if (result.type === 'success') {
+          console.log(result.bucketName);
+          console.log(result.renderId);
+        }
+        return result?.publicUrl;
       }
     )
-
-    const UpdateDownloadUrl=await step.run(
+    
+    const UpdateDownloadUrl = await step.run(
       'UpdateDownloadUrl',
-      async()=>{
-          const result = await convex.mutation(api.videoData.UpdateVideoRecord,{
-            recordId: recordId,
-            audioUrl: GenerateAudioFile,
-            images: GenerateImages,
-            captionJson: GenerateCaptions,
-            downloadUrl:RenderVideo
-          })
-          return result;
+      async () => {
+        const result = await convex.mutation(api.videoData.UpdateVideoRecord, {
+          recordId: recordId,
+          audioUrl: audioUrl,
+          images: images,
+          captionJson: captionJson,
+          downloadUrl: RenderVideo
+        });
+        return result;
       }
     )
     return RenderVideo;
-    }
-);
+  }
+)
