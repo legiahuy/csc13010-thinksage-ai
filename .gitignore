@@ -36,3 +36,6 @@ yarn-error.log*
 /crawler/data
 /crawler/env
 /crawler/*.log
+
+#data
+/frontend/data

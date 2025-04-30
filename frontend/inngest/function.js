@@ -148,35 +148,79 @@ export const GenVideo = inngest.createFunction(
     const RenderVideo = await step.run(
       "renderVideo",
       async () => {
-        const services = await getServices({
-          region: 'us-east1',
-          compatibleOnly: true,
-        });
-          
-        const serviceName = services[0].serviceName;
+        // Create a temporary directory for the video data
+        const tempDir = `/tmp/video-${Date.now()}`;
+        const fs = require('fs');
+        const { exec } = require('child_process');
+        const path = require('path');
 
-        const result = await renderMediaOnCloudrun({
-          serviceName,
-          region: 'us-east1',
-          serveUrl: process.env.GCP_SERVE_URL,
-          composition: 'youtubeShort',
-          inputProps: {
-            videoData: {
-              audioUrl: audioUrl,
-              captionJson: captionJson,
-              images: images
-            },
-          },
-          codec: 'h264',
-        });
-           
-        if (result.type === 'success') {
-          console.log(result.bucketName);
-          console.log(result.renderId);
+        // Create the directory if it doesn't exist
+        if (!fs.existsSync(tempDir)) {
+          fs.mkdirSync(tempDir, { recursive: true });
         }
-        return result?.publicUrl;
+
+        // Prepare the video data
+        const videoData = {
+          videoData: {
+            audioUrl,
+            captionJson,
+            images
+          }
+        };
+
+        // Base64 encode the video data to pass through environment variable
+        const videoDataBase64 = Buffer.from(JSON.stringify(videoData)).toString('base64');
+
+        // Get absolute paths for mounting
+        const remotionPath = path.resolve(process.cwd(), 'remotion');
+        const publicPath = path.resolve(process.cwd(), 'public');
+
+        // Execute Docker command to render the video
+        const dockerCommand = `docker run --rm \
+          -v ${remotionPath}:/app/remotion \
+          -v ${publicPath}:/app/public \
+          -e VIDEO_DATA_BASE64="${videoDataBase64}" \
+          -e OUTPUT_PATH=/app/data/output.mp4 \
+          -e NODE_ENV=production \
+          think-sage-video-renderer`;
+
+        console.log('Executing Docker command:', dockerCommand);
+
+        return new Promise((resolve, reject) => {
+          exec(dockerCommand, (error, stdout, stderr) => {
+            if (error) {
+              console.error(`Error: ${error.message}`);
+              reject(error);
+              return;
+            }
+            if (stderr) {
+              console.error(`stderr: ${stderr}`);
+            }
+            console.log(`stdout: ${stdout}`);
+
+            // The output file will be in the container's /app/data directory
+            // We need to copy it out using docker cp
+            const containerId = stdout.match(/Container ID: ([a-f0-9]+)/)?.[1];
+            if (containerId) {
+              const outputPath = path.join(tempDir, 'output.mp4');
+              exec(`docker cp ${containerId}:/app/data/output.mp4 ${outputPath}`, (cpError) => {
+                if (cpError) {
+                  reject(cpError);
+                  return;
+                }
+                if (fs.existsSync(outputPath)) {
+                  resolve(outputPath);
+                } else {
+                  reject(new Error('Video file not found after rendering'));
+                }
+              });
+            } else {
+              reject(new Error('Could not get container ID from output'));
+            }
+          });
+        });
       }
-    )
+    );
     
     const UpdateDownloadUrl = await step.run(
       'UpdateDownloadUrl',
@@ -190,7 +234,7 @@ export const GenVideo = inngest.createFunction(
         });
         return result;
       }
-    )
+    );
     return RenderVideo;
   }
-)
+);

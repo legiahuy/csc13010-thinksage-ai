@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   AbsoluteFill,
   Audio,
@@ -11,54 +11,49 @@ import {
 } from 'remotion';
 
 function RemotionComposition({ videoData }) {
-  const captions = videoData?.captionJson;
+  const captions = videoData?.captionJson || [];
   const { fps, width, height } = useVideoConfig();
-  const imageList = videoData?.images;
+  const imageList = videoData?.images || [];
   const frame = useCurrentFrame();
+  const [duration, setDuration] = useState(5 * 30); // Default 5 seconds
 
   useEffect(() => {
-    videoData && getDurationFrame();
-  }, [videoData]);
-
-  const getDurationFrame = () => {
-    const totalDuration = captions[captions?.length - 1]?.end * fps;
-    return totalDuration;
-  };
+    if (captions.length > 0) {
+      const lastCaption = captions[captions.length - 1];
+      if (lastCaption?.end) {
+        setDuration(Math.ceil(lastCaption.end * fps));
+      }
+    }
+  }, [captions, fps]);
 
   const getCurrentCaption = () => {
-    const currentTime = frame / 30;
-    const currentCaption = captions?.find(
+    const currentTime = frame / fps;
+    const currentCaption = captions.find(
       (item) => currentTime >= item.start && currentTime <= item.end
     );
     return currentCaption ? currentCaption.word : '';
   };
 
   const getCurrentCaptionStyle = () => {
-    const currentTime = frame / 30;
-    const currentCaption = captions?.find(
-      (item) => currentTime >= item.start && currentTime <= item.end
-    );
-
-    return currentCaption ? videoData?.caption?.style || '' : '';
+    return videoData?.caption?.style || 'default';
   };
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
       <AbsoluteFill>
-        {imageList?.map((item, index) => {
-          const startTime = (index * getDurationFrame()) / imageList.length;
-          const duration = getDurationFrame();
+        {imageList.map((item, index) => {
+          const startTime = (index * duration) / imageList.length;
+          const imageDuration = duration / imageList.length;
 
-          const scale = (index) =>
-            interpolate(
-              frame,
-              [startTime, startTime + duration / 2, startTime + duration],
-              index % 2 === 0 ? [1, 1.8, 1] : [1.8, 1, 1.8],
-              { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
-            );
+          const scale = interpolate(
+            frame,
+            [startTime, startTime + imageDuration / 2, startTime + imageDuration],
+            [1, 1.2, 1],
+            { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
+          );
 
           return (
-            <Sequence key={index} from={startTime} durationInFrames={duration}>
+            <Sequence key={index} from={startTime} durationInFrames={imageDuration}>
               <AbsoluteFill>
                 <Img
                   src={item}
@@ -66,7 +61,7 @@ function RemotionComposition({ videoData }) {
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
-                    transform: `scale(${scale(index)})`,
+                    transform: `scale(${scale})`,
                   }}
                 />
               </AbsoluteFill>
@@ -82,7 +77,6 @@ function RemotionComposition({ videoData }) {
           justifyContent: 'center',
           alignItems: 'center',
           pointerEvents: 'none',
-          paddingTop: '100%',
         }}
       >
         <div
@@ -92,18 +86,15 @@ function RemotionComposition({ videoData }) {
             padding: '10px 20px',
             maxWidth: '80%',
             textAlign: 'center',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
           }}
         >
           <h2
-            className={getCurrentCaptionStyle()}
             style={{
               fontSize: '40px',
               margin: 0,
               textAlign: 'center',
               width: '100%',
+              color: 'white',
             }}
           >
             {getCurrentCaption()}
@@ -111,7 +102,13 @@ function RemotionComposition({ videoData }) {
         </div>
       </AbsoluteFill>
 
-      {videoData?.audioUrl && <Audio src={videoData?.audioUrl} />}
+      {videoData?.audioUrl && (
+        <Audio
+          src={videoData.audioUrl}
+          startFrom={0}
+          endAt={duration}
+        />
+      )}
     </div>
   );
 }
