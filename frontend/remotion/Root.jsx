@@ -1,6 +1,5 @@
 import React from 'react';
 import { Composition } from 'remotion';
-import { MyComposition } from './Composition';
 import RemotionComposition from './../app/_components/RemotionComposition';
 
 export const RemotionRoot = () => {
@@ -9,17 +8,17 @@ export const RemotionRoot = () => {
       <Composition
         id="Composition"
         component={RemotionComposition}
-        durationInFrames={60 * 30} // 60 seconds at 30fps
+        durationInFrames={40 * 30} // 60 seconds at 30fps
         fps={30}
-        width={1080}
-        height={1920}
+        width={720}
+        height={1280}
         defaultProps={{
           videoData: {
-            audioUrl: "",
+            audioUrl: '',
             captionJson: [],
             images: [],
-            caption: { style: "default" }
-          }
+            caption: {},
+          },
         }}
       />
     </>

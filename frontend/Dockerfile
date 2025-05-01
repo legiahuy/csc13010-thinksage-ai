@@ -31,14 +31,21 @@ USER node
 
 # Copy package files
 COPY --chown=node:node package.json package*.json yarn.lock* pnpm-lock.yaml* bun.lockb* bun.lock* tsconfig.json* remotion.config.* ./
+COPY --chown=node:node tailwind.config.mjs postcss.config.mjs ./ 
+
 
 # Copy source files
 COPY --chown=node:node remotion ./remotion
 COPY --chown=node:node public ./public
 COPY --chown=node:node app ./app
 
+COPY --chown=node:node app/globals.css ./app/globals.css
+
 # Install dependencies
 RUN npm install
+
+RUN npm run build:css || true
+
 
 # Install Chrome
 RUN npx remotion browser ensure
