@@ -4,6 +4,7 @@ import { GenerateImageScript } from '../configs/AiModel';
 import { api } from '@/convex/_generated/api';
 import { ConvexHttpClient } from 'convex/browser';
 import { createClient } from '@deepgram/sdk';
+import { v2 as cloudinary } from 'cloudinary';
 
 const BASE_URL = 'https://aigurulab.tech';
 const ImagePromptScript = `Generate Image prompt of {style} style with all details for each scene for a 30 second video: script: {script}
@@ -218,31 +219,46 @@ export const GenVideo = inngest.createFunction(
       console.log('Executing Docker command:', dockerCommand);
 
       return new Promise((resolve, reject) => {
-        exec(dockerCommand, (error, stdout, stderr) => {
+        exec(dockerCommand, async (error, stdout, stderr) => {
           if (error) {
             console.error(`Error: ${error.message}`);
             console.error(`stderr: ${stderr}`);
-            reject(error);
-            return;
+            return reject(error);
           }
-          if (stderr) {
-            console.error(`stderr: ${stderr}`);
-          }
+
+          if (stderr) console.error(`stderr: ${stderr}`);
           console.log(`stdout: ${stdout}`);
 
-          // The output file should be in the outputDir now
           const outputPath = path.join(outputDir, 'output.mp4');
-          if (fs.existsSync(outputPath)) {
-            resolve(outputPath);
-          } else {
-            reject(new Error('Video file not found after rendering'));
+          if (!fs.existsSync(outputPath)) {
+            return reject(new Error('Video file not found after rendering'));
+          }
+
+          // Upload to Cloudinary
+          try {
+            cloudinary.config({
+              cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+              api_key: process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY,
+              api_secret: process.env.CLOUDINARY_API_SECRET,
+            });
+
+            const uploadResult = await cloudinary.uploader.upload(outputPath, {
+              resource_type: 'video',
+              folder: 'generated_videos',
+              public_id: `${recordId}-${Date.now()}`,
+            });
+
+            console.log('Upload successful:', uploadResult.secure_url);
+            resolve(uploadResult.secure_url);
+          } catch (uploadErr) {
+            console.error('Upload to Cloudinary failed:', uploadErr);
+            reject(uploadErr);
           }
         });
       });
     });
 
     await step.run('UpdateDownloadUrl', async () => {
-      // Use UpdateCompletedvideo mutation since we're primarily updating the download URL and status
       const result = await convex.mutation(api.videoData.UpdateCompletedvideo, {
         recordId: VideoData.recordId,
         downloadUrl: RenderVideo,
@@ -250,6 +266,7 @@ export const GenVideo = inngest.createFunction(
       });
       return result;
     });
+
     return RenderVideo;
   }
 );
