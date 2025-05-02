@@ -54,7 +54,7 @@ RUN npx remotion browser ensure
 COPY --chown=node:node render.mjs render.mjs
 
 # Set environment variables
-ENV INPUT_PROPS_PATH=/app/data/videoData.json
+ENV INPUT_PROPS_PATH=/tmp/videoData.json
 ENV OUTPUT_PATH=/app/data/output.mp4
 ENV NODE_ENV=production
 

@@ -4,7 +4,7 @@ Write-Host "Starting video rendering test..."
 # Write-Host "Setting up directories..."
 # New-Item -ItemType Directory -Force -Path "remotion", "public", "app/_components", "data"
 
-# # Build the Docker image
+# Build the Docker image
 # Write-Host "Building Docker image..."
 # docker build -t think-sage-video-renderer .
 
@@ -436,15 +436,15 @@ Write-Host "Preparing video data..."
 # Base64 encode the video data
 $VIDEO_DATA_BASE64 = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($VIDEO_DATA))
 
-Write-Host "Starting Docker container..."
+# Write-Host "Starting Docker container..."
 # Run the Docker container with the environment variables
-docker run --rm `
-  -e VIDEO_DATA_BASE64="$VIDEO_DATA_BASE64" `
-  -e OUTPUT_PATH="/app/data/output.mp4" `
-  -e NODE_ENV=production `
-  -e DEBUG=1 `
-  -v "$(Get-Location)/remotion:/app/remotion" `
-  -v "$(Get-Location)/public:/app/public" `
-  -v "$(Get-Location)/app:/app/app" `
-  -v "$(Get-Location)/data:/app/data" `
-  think-sage-video-renderer
+# docker run --rm `
+#   -e VIDEO_DATA_BASE64="$VIDEO_DATA_BASE64" `
+#   -e OUTPUT_PATH="/app/data/output.mp4" `
+#   -e NODE_ENV=production `
+#   -e DEBUG=1 `
+#   -v "$(Get-Location)/remotion:/app/remotion" `
+#   -v "$(Get-Location)/public:/app/public" `
+#   -v "$(Get-Location)/app:/app/app" `
+#   -v "$(Get-Location)/data:/app/data" `
+#   think-sage-video-renderer

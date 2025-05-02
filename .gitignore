@@ -39,3 +39,4 @@ yarn-error.log*
 
 #data
 /frontend/data
+/frontend/tmp
