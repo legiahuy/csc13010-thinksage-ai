@@ -1,5 +1,6 @@
 'use client';
 import React, { useEffect } from 'react';
+import PropTypes from 'prop-types';
 import {
   AbsoluteFill,
   Audio,
@@ -9,21 +10,22 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion';
+import './tailwind-output.css';
 
 function RemotionComposition({ videoData }) {
   const captions = videoData?.captionJson;
-  const { fps, width, height } = useVideoConfig();
+  const { fps } = useVideoConfig();
   const imageList = videoData?.images;
   const frame = useCurrentFrame();
-
-  useEffect(() => {
-    videoData && getDurationFrame();
-  }, [videoData]);
 
   const getDurationFrame = () => {
     const totalDuration = captions[captions?.length - 1]?.end * fps;
     return totalDuration;
   };
+
+  useEffect(() => {
+    videoData && getDurationFrame();
+  }, [videoData, getDurationFrame]);
 
   const getCurrentCaption = () => {
     const currentTime = frame / 30;
@@ -115,5 +117,16 @@ function RemotionComposition({ videoData }) {
     </div>
   );
 }
+
+RemotionComposition.propTypes = {
+  videoData: PropTypes.shape({
+    captionJson: PropTypes.array,
+    images: PropTypes.array,
+    caption: PropTypes.shape({
+      style: PropTypes.string,
+    }),
+    audioUrl: PropTypes.string,
+  }),
+};
 
 export default RemotionComposition;
