@@ -123,13 +123,19 @@ export const GetUserVideos = query({
     const result = await ctx.db
       .query('videoData')
       .filter((q) => q.eq(q.field('uid'), args.uid))
-      .filter((q) => q.eq(q.field('status'), 'completed'))
+      .filter((q) =>
+        q.or(
+          q.eq(q.field('status'), 'completed'),
+          q.eq(q.field('status'), 'pending')
+        )
+      )
       .order('desc')
       .collect();
 
     return result;
   },
 });
+
 
 export const GetVideoById = query({
   args: {
