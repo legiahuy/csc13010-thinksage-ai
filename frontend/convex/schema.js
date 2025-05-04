@@ -23,5 +23,9 @@ export default defineSchema({
     createdBy: (v.string()),
     status: v.optional(v.string()),
     downloadUrl: v.optional(v.string()),
+    backgroundMusic: v.optional(v.object({
+      url: v.string(),
+      volume: v.number()
+    })),
   }),
 });

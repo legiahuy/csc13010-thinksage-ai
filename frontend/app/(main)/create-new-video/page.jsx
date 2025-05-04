@@ -19,6 +19,7 @@ function CreateNewVideo() {
   const [formData, setFormData] = useState({})
   const CreateInitialVideoRecord = useMutation(api.videoData.CreateVideoData)
   const GetVideoTitle = useMutation(api.videoData.CreateVideo)
+  const UpdateImages = useMutation(api.videoData.UpdateImages)
   const { user } = useAuthContext()
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -30,6 +31,7 @@ function CreateNewVideo() {
   const [audioUrl, setAudioUrl] = useState(null);
   const [previewImages, setPreviewImages] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [backgroundMusic, setBackgroundMusic] = useState(null);
 
   // Fetch images if videoId exists
   const images = useQuery(api.videoData.fetchImages, formData?.recordId ? { videoId: formData.recordId } : "skip")
@@ -113,13 +115,40 @@ function CreateNewVideo() {
         uid: user?._id,
         createdBy: user?.email,
         credits: user?.credits,
-        mediaItems, // Include the edited media items
+        backgroundMusic: backgroundMusic ? {
+          url: backgroundMusic.url,
+          volume: backgroundMusic.volume
+        } : null,
       });
 
-      // Generate video
+      // Update images in the database with transitions
+      await UpdateImages({
+        recordId: formData.recordId,
+        images: mediaItems.map(item => ({
+          url: typeof item === 'string' ? item : item.url,
+          transition: item.transition || 'fade',
+          duration: item.duration || 5,
+          startTime: item.startTime || 0,
+          endTime: item.endTime || 5,
+          volume: item.volume || 100
+        })),
+      });
+
+      // Generate video with transitions and background music
       const result = await axios.post("/api/generate-video", {
         ...formData,
-        mediaItems, // Include the edited media items
+        mediaItems: mediaItems.map(item => ({
+          url: typeof item === 'string' ? item : item.url,
+          transition: item.transition || 'fade',
+          duration: item.duration || 5,
+          startTime: item.startTime || 0,
+          endTime: item.endTime || 5,
+          volume: item.volume || 100
+        })),
+        backgroundMusic: backgroundMusic ? {
+          url: backgroundMusic.url,
+          volume: backgroundMusic.volume
+        } : null
       });
       
       router.push("/dashboard");
@@ -327,6 +356,7 @@ function CreateNewVideo() {
                   mediaItems={mediaItems}
                   setMediaItems={setMediaItems}
                   audioUrl={audioUrl}
+                  onBackgroundMusicChange={(music) => setBackgroundMusic(music)}
                 />
               </div>
             </div>

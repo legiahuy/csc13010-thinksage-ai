@@ -86,19 +86,17 @@ function VideoList() {
           {videoList?.map((video, index) => (
             <Link key={index} href={'/play-video/' + video?._id}>
               <div className="relative">
-                {video?.status == 'completed' ? (
+                {video?.status == 'completed' && video?.images?.[0] ? (
                   <Image
-                    src={video?.images[0]}
-                    alt={video?.title}
+                    src={typeof video.images[0] === 'string' ? video.images[0] : video.images[0].url}
+                    alt={video?.title || 'Video thumbnail'}
                     width={500}
-                    height={500}
-                    priority={index === 0} // Add priority to the first image
-                    className="w-full object-cover rounded-xl aspect-[2/3]"
+                    height={300}
+                    className="rounded-lg object-cover"
                   />
                 ) : (
-                  <div className="aspect-[2/3] p-5 w-full rounded-xl bg-slate-900 flex items-center justify-center">
-                    <RefreshCcw className="animate-spin mr-2" />
-                    <h2>Generating...</h2>
+                  <div className="w-full h-[300px] bg-gray-800 rounded-lg flex items-center justify-center">
+                    <span className="text-gray-400">No thumbnail available</span>
                   </div>
                 )}
                 <div className="absolute bottom-3 px-5 w-full">

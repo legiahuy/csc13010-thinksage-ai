@@ -30,6 +30,10 @@ export const CreateVideoData = mutation({
     uid: v.id('users'),
     createdBy: v.string(),
     credits: v.number(),
+    backgroundMusic: v.optional(v.object({
+      url: v.string(),
+      volume: v.number()
+    })),
   },
   handler: async (ctx, args) => {
     const result = await ctx.db.patch(args.recordId, {
@@ -41,6 +45,7 @@ export const CreateVideoData = mutation({
       uid: args.uid,
       createdBy: args.createdBy,
       status: 'pending',
+      backgroundMusic: args.backgroundMusic,
     });
 
     await ctx.db.patch(args.uid, {
@@ -114,6 +119,21 @@ export const UpdateCompletedvideo = mutation({
   }
 })
 
+export const UpdateBackgroundMusic = mutation({
+  args: {
+    recordId: v.id('videoData'),
+    backgroundMusic: v.optional(v.object({
+      url: v.string(),
+      volume: v.number()
+    }))
+  },
+  handler: async (ctx, args) => {
+    const result = await ctx.db.patch(args.recordId, {
+      backgroundMusic: args.backgroundMusic
+    });
+    return result;
+  }
+});
 
 export const GetUserVideos = query({
   args: {
