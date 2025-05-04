@@ -5,7 +5,15 @@ import reactHooksPlugin from "eslint-plugin-react-hooks";
 
 /** @type {import('eslint').Linter.Config[]} */
 export default [
-  {languageOptions: { globals: globals.browser }},
+  {
+    languageOptions: { 
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        process: "readonly"
+      }
+    }
+  },
   pluginJs.configs.recommended,
   {
     files: ["**/*.{js,jsx,ts,tsx}"],
@@ -31,6 +39,7 @@ export default [
       ...reactPlugin.configs.recommended.rules,
       ...reactHooksPlugin.configs.recommended.rules,
       "react/react-in-jsx-scope": "off", // Not needed in Next.js
+      "no-undef": "off" // Since we're using globals
     },
   },
 ];
