@@ -65,6 +65,16 @@ function RemotionComposition({ videoData }) {
     return currentCaption ? videoData?.caption?.style || '' : '';
   };
 
+  // Calculate start frames for each image based on their durations
+  const imageStartFrames = [];
+  let cumulativeFrames = 0;
+  imageList?.forEach((item, idx) => {
+    imageStartFrames[idx] = cumulativeFrames;
+    const durationSec = Number(item.duration) || 1;
+    cumulativeFrames += Math.floor(durationSec * fps);
+  });
+  const totalFrames = cumulativeFrames;
+
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
       <AbsoluteFill>
@@ -72,18 +82,23 @@ function RemotionComposition({ videoData }) {
           const imageUrl = typeof item === 'string' ? item : item?.url;
           return imageUrl && imageUrl.trim() !== '';
         }).map((item, index) => {
-          const startTime = (index * getDurationFrame()) / imageList.length;
-          const duration = getDurationFrame();
+          const startFrame = imageStartFrames[index];
+          const durationSec = Number(item.duration) || 1;
+          const durationFrames = Math.floor(durationSec * fps);
           const transition = item.transition || 'fade';
-          const transitionDuration = 30; // Duration of transition in frames
-
+          
+          // Ensure transition duration is valid and won't cause duplicate values
+          const minTransition = 1; // Minimum transition duration in frames
+          const maxTransition = Math.max(minTransition, Math.min(30, Math.floor(durationFrames / 2) - 1));
+          const transitionDuration = maxTransition;
+          
           // Calculate when the next image should start appearing
-          const nextImageStartTime = startTime + duration - transitionDuration;
+          const nextImageStartTime = startFrame + durationFrames - transitionDuration;
 
           // More subtle scale effect with easing
           const scale = interpolate(
             frame,
-            [startTime, startTime + duration / 2, startTime + duration],
+            [startFrame, startFrame + durationFrames / 2, startFrame + durationFrames],
             [1, 1.1, 1],
             { 
               extrapolateLeft: 'clamp', 
@@ -97,7 +112,7 @@ function RemotionComposition({ videoData }) {
           // Calculate transition progress with easing
           const transitionProgress = interpolate(
             frame,
-            [startTime, startTime + transitionDuration],
+            [startFrame, startFrame + transitionDuration],
             [0, 1],
             { 
               extrapolateLeft: 'clamp', 
@@ -109,7 +124,7 @@ function RemotionComposition({ videoData }) {
           // Calculate exit transition progress
           const exitProgress = interpolate(
             frame,
-            [nextImageStartTime, startTime + duration],
+            [nextImageStartTime, startFrame + durationFrames],
             [0, 1],
             { 
               extrapolateLeft: 'clamp', 
@@ -119,7 +134,7 @@ function RemotionComposition({ videoData }) {
           );
 
           return (
-            <Sequence key={index} from={startTime} durationInFrames={duration}>
+            <Sequence key={index} from={startFrame} durationInFrames={durationFrames}>
               <AbsoluteFill>
                 <Img
                   src={imageUrl}
@@ -130,7 +145,7 @@ function RemotionComposition({ videoData }) {
                     transform: `scale(${scale})`,
                     opacity: interpolate(
                       frame,
-                      [startTime, startTime + transitionDuration, nextImageStartTime, startTime + duration],
+                      [startFrame, startFrame + transitionDuration, nextImageStartTime, startFrame + durationFrames],
                       [0, 1, 1, 0],
                       { 
                         extrapolateLeft: 'clamp', 
@@ -153,7 +168,7 @@ function RemotionComposition({ videoData }) {
                     ...(transition === 'slide' && { 
                       transform: `scale(${scale}) translateX(${interpolate(
                         frame,
-                        [startTime, startTime + transitionDuration, nextImageStartTime, startTime + duration],
+                        [startFrame, startFrame + transitionDuration, nextImageStartTime, startFrame + durationFrames],
                         [20, 0, 0, -20],
                         { 
                           extrapolateLeft: 'clamp', 
@@ -175,7 +190,7 @@ function RemotionComposition({ videoData }) {
                     ...(transition === 'zoom' && { 
                       transform: `scale(${interpolate(
                         frame,
-                        [startTime, startTime + transitionDuration, nextImageStartTime, startTime + duration],
+                        [startFrame, startFrame + transitionDuration, nextImageStartTime, startFrame + durationFrames],
                         [1.1, 1, 1, 0.9],
                         { 
                           extrapolateLeft: 'clamp', 
@@ -197,7 +212,7 @@ function RemotionComposition({ videoData }) {
                     ...(transition === 'dissolve' && { 
                       filter: `blur(${interpolate(
                         frame,
-                        [startTime, startTime + transitionDuration, nextImageStartTime, startTime + duration],
+                        [startFrame, startFrame + transitionDuration, nextImageStartTime, startFrame + durationFrames],
                         [8, 0, 0, 8],
                         { 
                           extrapolateLeft: 'clamp', 
@@ -250,10 +265,19 @@ function RemotionComposition({ videoData }) {
         </div>
       </AbsoluteFill>
 
-      {videoData?.audioUrl && <Audio src={videoData?.audioUrl} />}
+      {/* Narrator Audio */}
+      {videoData?.audioUrl && (
+        <Audio
+          src={videoData.audioUrl}
+          volume={(videoData.narratorVolume ?? 100) / 100}
+        />
+      )}
+      {/* Background Music */}
       {videoData?.backgroundMusic && (
-        <Audio 
-          src={videoData.backgroundMusic.url} 
+        <Audio
+          src={videoData.backgroundMusic.url}
+          startFrom={Math.floor((videoData.backgroundMusic.start || 0) * fps)}
+          endAt={Math.floor((videoData.backgroundMusic.end || (totalFrames / fps)) * fps)}
           volume={videoData.backgroundMusic.volume / 100}
         />
       )}

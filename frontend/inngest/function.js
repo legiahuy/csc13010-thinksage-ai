@@ -53,53 +53,23 @@ export const GenImg = inngest.createFunction(
         let images = [];
         images = await Promise.all(
           GenerateImagePrompt.map(async (element) => {
-            console.log('Generating image for prompt:', element?.imagePrompt);
-            console.log('API Key:', process.env.NEXT_PUBLIC_AIGURULAB_API_KEY ? 'Present' : 'Missing');
-            console.log('Base URL:', BASE_URL);
-            
-            const requestData = {
-              prompt: element?.imagePrompt,
-              width: 1024,
-              height: 1024,
-              model: 'sdxl',
-              aspect_ratio: '1:1',
-              num_inference_steps: 50,
-              guidance_scale: 7.5,
-              negative_prompt: "blurry, low quality, distorted, deformed"
-            };
-            console.log('Request data:', requestData);
-
             const result = await axios.post(
-              `${BASE_URL}/api/generate-image`,
-              requestData,
+              BASE_URL + '/api/generate-image',
+              {
+                width: 1024,
+                height: 1024,
+                input: element?.imagePrompt,
+                model: 'sdxl', //'flux'
+                aspectRatio: '1:1', //Applicable to Flux model only
+              },
               {
                 headers: {
-                  'x-api-key': process.env.NEXT_PUBLIC_AIGURULAB_API_KEY,
-                  'Content-Type': 'application/json',
-                  'Accept': 'application/json'
+                  'x-api-key': process.env.NEXT_PUBLIC_AIGURULAB_API_KEY, // Your API Key
+                  'Content-Type': 'application/json', // Content Type
                 },
-                timeout: 30000,
-                validateStatus: function (status) {
-                  return status < 500;
-                }
               }
             );
-
-            if (result.status >= 400) {
-              console.error('API Error Response:', {
-                status: result.status,
-                statusText: result.statusText,
-                data: result.data
-              });
-              throw new Error(`API Error: ${result.status} - ${result.statusText} - ${JSON.stringify(result.data)}`);
-            }
-
-            if (!result.data || !result.data.image) {
-              console.error('Invalid API Response:', result.data);
-              throw new Error('Invalid API response: missing image data');
-            }
-
-            console.log('Image generation successful');
+            console.log(result.data.image); //Output Result: Base 64 Image
             return result.data.image;
           })
         );
@@ -199,6 +169,7 @@ export const GenVideo = inngest.createFunction(
     const { recordId } = event.data;
     const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
+    // Fetch DB values for fallback
     const VideoData = await step.run("Fetch Video Data", async () => {
       const result = await convex.query(api.videoData.GetVideoById, {
         videoId: recordId,
@@ -206,21 +177,13 @@ export const GenVideo = inngest.createFunction(
       return result;
     });
 
-    // Prepare video data with proper image URLs and background music
+    // Use event.data for latest values, fallback to DB if not present
     const videoData = {
       ...VideoData,
-      images: VideoData.images.map(img => ({
-        url: typeof img === 'string' ? img : img.url,
-        transition: img.transition || 'fade',
-        duration: img.duration || 5,
-        startTime: img.startTime || 0,
-        endTime: img.endTime || 5,
-        volume: img.volume || 100
-      })),
-      backgroundMusic: VideoData.backgroundMusic ? {
-        url: VideoData.backgroundMusic.url,
-        volume: VideoData.backgroundMusic.volume || 50
-      } : null
+      ...event.data,
+      images: event.data.mediaItems || VideoData.images || [],
+      backgroundMusic: event.data.backgroundMusic || VideoData.backgroundMusic || undefined,
+      narratorVolume: event.data.narratorVolume ?? VideoData.narratorVolume,
     };
 
     // Write video data to JSON file
@@ -244,13 +207,7 @@ export const GenVideo = inngest.createFunction(
 
       // Prepare the video data for Docker
       const dockerVideoData = {
-        videoData: {
-          audioUrl: VideoData.audioUrl,
-          captionJson: VideoData.captionJson,
-          images: videoData.images,
-          caption: VideoData.caption,
-          backgroundMusic: videoData.backgroundMusic
-        },
+        videoData: videoData,
       };
 
       console.log('Rendering video with data:', dockerVideoData);

@@ -32,6 +32,10 @@ function CreateNewVideo() {
   const [previewImages, setPreviewImages] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [backgroundMusic, setBackgroundMusic] = useState(null);
+  const [narratorVolume, setNarratorVolume] = useState(100);
+  const [musicVolume, setMusicVolume] = useState(50);
+  const [musicStart, setMusicStart] = useState(0);
+  const [musicEnd, setMusicEnd] = useState(null);
 
   // Fetch images if videoId exists
   const images = useQuery(api.videoData.fetchImages, formData?.recordId ? { videoId: formData.recordId } : "skip")
@@ -53,23 +57,30 @@ function CreateNewVideo() {
     }
   }, [audio]);
 
-  // Update media items when images are fetched
+  // Update media items when images or audio are fetched
   useEffect(() => {
-    if (images && images.length > 0) {
-      const newMediaItems = images.map((image, index) => ({
-        id: `scene-${index}`,
-        name: `Scene ${index + 1}`,
-        url: typeof image === 'string' ? image : image.url,
-        duration: 5, // Default duration for each scene
-        startTime: 0,
-        endTime: 5,
-        volume: 100,
-        transition: 'none',
-      }));
-      setMediaItems(newMediaItems);
-      setPreviewImages(images);
+    if (images && images.length > 0 && audioUrl) {
+      // Get audio duration
+      const audio = new Audio(audioUrl);
+      audio.addEventListener('loadedmetadata', () => {
+        const totalDuration = audio.duration;
+        const perImage = totalDuration / images.length;
+        const newMediaItems = images.map((image, index) => ({
+          id: `scene-${index}`,
+          name: `Scene ${index + 1}`,
+          url: typeof image === 'string' ? image : image.url,
+          duration: perImage,
+          startTime: 0,
+          endTime: perImage,
+          volume: 100,
+          transition: 'none',
+        }));
+        setMediaItems(newMediaItems);
+        setPreviewImages(images);
+      });
+      audio.load();
     }
-  }, [images]);
+  }, [images, audioUrl]);
 
   // Update audio URL when audio is fetched
   useEffect(() => {
@@ -115,10 +126,13 @@ function CreateNewVideo() {
         uid: user?._id,
         createdBy: user?.email,
         credits: user?.credits,
+        narratorVolume: narratorVolume,
         backgroundMusic: backgroundMusic ? {
           url: backgroundMusic.url,
-          volume: backgroundMusic.volume
-        } : null,
+          volume: musicVolume,
+          start: musicStart,
+          end: musicEnd
+        } : undefined,
       });
 
       // Update images in the database with transitions
@@ -137,6 +151,7 @@ function CreateNewVideo() {
       // Generate video with transitions and background music
       const result = await axios.post("/api/generate-video", {
         ...formData,
+        narratorVolume: narratorVolume,
         mediaItems: mediaItems.map(item => ({
           url: typeof item === 'string' ? item : item.url,
           transition: item.transition || 'fade',
@@ -147,8 +162,10 @@ function CreateNewVideo() {
         })),
         backgroundMusic: backgroundMusic ? {
           url: backgroundMusic.url,
-          volume: backgroundMusic.volume
-        } : null
+          volume: musicVolume,
+          start: musicStart,
+          end: musicEnd
+        } : undefined
       });
       
       router.push("/dashboard");
@@ -343,20 +360,30 @@ function CreateNewVideo() {
 
               {/* Video Preview */}
               <div className="mt-8 mb-8 p-4 bg-gray-800 rounded-xl">
-                <h2 className="text-xl font-bold mb-2 text-white">Video Preview (Live Slideshow)</h2>
-                <p className="text-gray-300 mb-4">Preview your video with current edits before generating the final video.</p>
-                <VideoPreview mediaItems={mediaItems} audioUrl={audioUrl} />
+                <h2 className="text-xl font-bold mb-2 text-white">Image Slideshow Preview</h2>
+                <p className="text-gray-300 mb-4">Get an early look at your image sequence and transitions before generating the final video.</p>
+                <VideoPreview mediaItems={mediaItems} audioUrl={audioUrl} backgroundMusic={backgroundMusic} narratorVolume={narratorVolume} musicVolume={musicVolume} musicStart={musicStart} musicEnd={musicEnd} />
               </div>
 
-              {/* Video Editor */}
+              {/* Volume Settings */}
               <div className="mt-5">
-                <h2>Video Editor</h2>
-                <p className="text-sm text-gray-400 mb-4">Edit your generated media</p>
+                <h2>Volume Settings</h2>
+                <p className="text-sm text-gray-400 mb-4">Adjust the volume for the narrator and background music below.</p>
                 <VideoEditor
                   mediaItems={mediaItems}
                   setMediaItems={setMediaItems}
                   audioUrl={audioUrl}
-                  onBackgroundMusicChange={(music) => setBackgroundMusic(music)}
+                  backgroundMusic={backgroundMusic}
+                  onBackgroundMusicChange={setBackgroundMusic}
+                  narratorVolume={narratorVolume}
+                  setNarratorVolume={setNarratorVolume}
+                  musicVolume={musicVolume}
+                  setMusicVolume={setMusicVolume}
+                  musicStart={musicStart}
+                  setMusicStart={setMusicStart}
+                  musicEnd={musicEnd}
+                  setMusicEnd={setMusicEnd}
+                  recordId={formData.recordId}
                 />
               </div>
             </div>

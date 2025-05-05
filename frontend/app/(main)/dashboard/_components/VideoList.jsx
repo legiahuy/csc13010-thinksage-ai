@@ -85,17 +85,16 @@ function VideoList() {
         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5 mt-10">
           {videoList?.map((video, index) => (
             <Link key={index} href={'/play-video/' + video?._id}>
-              <div className="relative">
+              <div className="relative w-full aspect-[9/16] bg-gray-800 rounded-lg overflow-hidden flex items-end">
                 {video?.status == 'completed' && video?.images?.[0] ? (
                   <Image
                     src={typeof video.images[0] === 'string' ? video.images[0] : video.images[0].url}
                     alt={video?.title || 'Video thumbnail'}
-                    width={500}
-                    height={300}
-                    className="rounded-lg object-cover"
+                    fill
+                    className="object-cover"
                   />
                 ) : (
-                  <div className="w-full h-[300px] bg-gray-800 rounded-lg flex items-center justify-center">
+                  <div className="w-full h-full flex items-center justify-center">
                     <span className="text-gray-400">No thumbnail available</span>
                   </div>
                 )}

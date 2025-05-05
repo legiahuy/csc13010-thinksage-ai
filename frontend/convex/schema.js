@@ -25,7 +25,10 @@ export default defineSchema({
     downloadUrl: v.optional(v.string()),
     backgroundMusic: v.optional(v.object({
       url: v.string(),
-      volume: v.number()
+      volume: v.number(),
+      start: v.optional(v.number()),
+      end: v.optional(v.number())
     })),
+    narratorVolume: v.optional(v.number()),
   }),
 });

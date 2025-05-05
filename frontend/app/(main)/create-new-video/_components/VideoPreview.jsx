@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { Play, Pause } from 'lucide-react';
 
 /**
  * VideoPreview component
@@ -8,7 +9,7 @@ import React, { useRef, useState, useEffect } from 'react';
  */
 const TRANSITION_DURATION = 0.7; // seconds, must match CSS
 
-const VideoPreview = ({ mediaItems, audioUrl }) => {
+const VideoPreview = ({ mediaItems, audioUrl, backgroundMusic, narratorVolume = 100, musicVolume = 50, musicStart = 0, musicEnd = null }) => {
   // Debug log for props
   console.log('VideoPreview mediaItems:', mediaItems, 'audioUrl:', audioUrl);
 
@@ -19,6 +20,7 @@ const VideoPreview = ({ mediaItems, audioUrl }) => {
   const [transitioning, setTransitioning] = useState(false);
   const [transitionFrom, setTransitionFrom] = useState(null); // index of outgoing scene
   const audioRef = useRef(null);
+  const bgmRef = useRef(null);
   const timerRef = useRef(null);
 
   // Calculate cumulative start times for each scene
@@ -41,10 +43,19 @@ const VideoPreview = ({ mediaItems, audioUrl }) => {
           console.warn('Audio play failed:', e);
         });
       }
+      if (bgmRef.current) {
+        bgmRef.current.currentTime = musicStart;
+        bgmRef.current.play().catch((e) => {
+          console.warn('BGM play failed:', e);
+        });
+      }
     } else {
       setIsPlaying(false);
       if (audioRef.current) {
         audioRef.current.pause();
+      }
+      if (bgmRef.current) {
+        bgmRef.current.pause();
       }
     }
   };
@@ -89,13 +100,20 @@ const VideoPreview = ({ mediaItems, audioUrl }) => {
         }
         // If not found, we're at the last scene or finished
         if (!found && mediaItems.length > 0) {
-          setCurrentIndex(mediaItems.length - 1);
-          setTransitioning(false);
-          setTransitionFrom(null);
+          // Check if audio is still playing
+          if (audioRef.current && !audioRef.current.paused) {
+            setCurrentIndex(mediaItems.length - 1); // Stay on last image
+            setTransitioning(false);
+            setTransitionFrom(null);
+          } else {
+            setCurrentIndex(mediaItems.length - 1);
+            setTransitioning(false);
+            setTransitionFrom(null);
+          }
         }
-        // Stop if finished
-        const lastSceneEnd = sceneStartTimes[sceneStartTimes.length - 1] + (mediaItems[mediaItems.length - 1]?.duration || 0);
-        if (newElapsed >= lastSceneEnd) {
+        // Stop if finished (audio ends)
+        const audioDuration = audioRef.current?.duration || 0;
+        if (audioDuration && newElapsed >= audioDuration) {
           setIsPlaying(false);
           setElapsed(0);
           setCurrentIndex(0);
@@ -104,6 +122,10 @@ const VideoPreview = ({ mediaItems, audioUrl }) => {
           if (audioRef.current) {
             audioRef.current.pause();
             audioRef.current.currentTime = 0;
+          }
+          if (bgmRef.current) {
+            bgmRef.current.pause();
+            bgmRef.current.currentTime = 0;
           }
           clearInterval(timerRef.current);
         }
@@ -127,10 +149,28 @@ const VideoPreview = ({ mediaItems, audioUrl }) => {
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
-      // Force reload audio element for new audioUrl
       audioRef.current.load && audioRef.current.load();
     }
-  }, [mediaItems, audioUrl]);
+    if (bgmRef.current) {
+      bgmRef.current.pause();
+      bgmRef.current.currentTime = 0;
+      bgmRef.current.load && bgmRef.current.load();
+    }
+  }, [mediaItems, audioUrl, backgroundMusic]);
+
+  // Add effect to stop BGM at musicEnd
+  useEffect(() => {
+    if (!bgmRef.current || !musicEnd) return;
+    const audio = bgmRef.current;
+    const onTimeUpdate = () => {
+      if (musicEnd && audio.currentTime >= musicEnd) {
+        audio.pause();
+        audio.currentTime = musicEnd;
+      }
+    };
+    audio.addEventListener('timeupdate', onTimeUpdate);
+    return () => audio.removeEventListener('timeupdate', onTimeUpdate);
+  }, [musicEnd, bgmRef]);
 
   // Transition class logic
   function getTransitionClass(item, idx) {
@@ -170,13 +210,21 @@ const VideoPreview = ({ mediaItems, audioUrl }) => {
     return 'opacity-0 z-0';
   }
 
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = narratorVolume / 100;
+    }
+    if (bgmRef.current) {
+      bgmRef.current.volume = musicVolume / 100;
+    }
+  }, [narratorVolume, musicVolume]);
+
   if (!mediaItems || mediaItems.length === 0) {
     return <div className="bg-gray-800 rounded-lg p-4 text-center text-gray-400">No scenes to preview</div>;
   }
 
   return (
-    <div className="relative w-full h-96 bg-black rounded-lg overflow-hidden flex items-center justify-center">
-      {/* Inline style for keyframes and classes */}
+    <div className="relative w-full max-w-[360px] mx-auto">
       <style>{`
         @keyframes slide-in { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes slide-out { from { transform: translateX(0); opacity: 1; } to { transform: translateX(-100%); opacity: 0; } }
@@ -191,33 +239,42 @@ const VideoPreview = ({ mediaItems, audioUrl }) => {
         .animate-dissolve-in { animation: dissolve-in 0.7s forwards; }
         .animate-dissolve-out { animation: dissolve-out 0.7s forwards; }
       `}</style>
-      {/* Scene images with per-scene transitions */}
-      {mediaItems.map((item, idx) => (
-        <img
-          key={idx}
-          src={item.url}
-          alt={`Scene ${idx + 1}`}
-          className={`absolute w-full h-full object-cover ${getTransitionClass(item, idx)}`}
-        />
-      ))}
-      {/* Controls - always on top */}
-      <div
-        className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center space-x-4 bg-black/60 px-4 py-2 rounded-full"
-        style={{ zIndex: 100 }}
-      >
-        <button
-          onClick={handlePlayPause}
-          className="text-white text-lg font-bold focus:outline-none"
+      <div className="relative aspect-[9/16] bg-black rounded-lg overflow-hidden">
+        {mediaItems.map((item, idx) => (
+          <div
+            key={idx}
+            className={`absolute inset-0 transition-opacity duration-700 ${getTransitionClass(item, idx)}`}
+          >
+            <img
+              src={item.url}
+              alt={`Scene ${idx + 1}`}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        ))}
+        <div
+          className="absolute inset-0 flex items-center justify-center"
+          style={{ zIndex: 100 }}
         >
-          {isPlaying ? 'Pause' : 'Play'}
-        </button>
-        <span className="text-white text-sm">
-          Scene {currentIndex + 1} / {mediaItems.length}
-        </span>
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
+            <button
+              onClick={handlePlayPause}
+              className="bg-white/80 hover:bg-white text-black rounded-full p-2 shadow-lg"
+            >
+              {isPlaying ? <Pause size={24} /> : <Play size={24} />}
+            </button>
+          </div>
+          <span className="text-white text-sm">
+            Scene {currentIndex + 1} / {mediaItems.length}
+          </span>
+        </div>
       </div>
       {/* Audio element (hidden) */}
       {audioUrl && (
         <audio ref={audioRef} src={audioUrl} />
+      )}
+      {backgroundMusic && backgroundMusic.url && (
+        <audio ref={bgmRef} src={backgroundMusic.url} />
       )}
     </div>
   );

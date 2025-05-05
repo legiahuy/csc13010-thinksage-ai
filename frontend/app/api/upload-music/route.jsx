@@ -53,22 +53,22 @@ export async function POST(request) {
 
     console.log('Cloudinary upload successful:', result.secure_url);
 
-    // If we have a recordId, try to update through Inngest (but don't wait for it)
+    // If we have a recordId, update Convex immediately
     if (recordId) {
-      try {
-        inngest.send({
-          name: 'upload-music',
-          data: {
-            recordId,
-            downloadUrl: result.secure_url
-          }
-        }).catch(error => {
-          console.error('Inngest update failed:', error);
-          // Don't throw the error, just log it
-        });
-      } catch (error) {
-        console.error('Error sending to Inngest:', error);
-        // Don't throw the error, just log it
+      const { ConvexHttpClient } = await import('convex/browser');
+      const { api } = await import('@/convex/_generated/api');
+      const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
+      console.log('Attempting to update Convex backgroundMusic for recordId:', recordId);
+      const resultConvex = await convex.mutation(api.videoData.UpdateBackgroundMusic, {
+        recordId,
+        backgroundMusic: {
+          url: result.secure_url,
+          volume: 50 // Default volume, adjust as needed
+        }
+      });
+      console.log('Convex update result:', resultConvex);
+      if (!resultConvex) {
+        console.warn('Convex update returned null/undefined. The recordId may not exist:', recordId);
       }
     }
 

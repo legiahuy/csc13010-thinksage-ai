@@ -32,8 +32,11 @@ export const CreateVideoData = mutation({
     credits: v.number(),
     backgroundMusic: v.optional(v.object({
       url: v.string(),
-      volume: v.number()
+      volume: v.number(),
+      start: v.optional(v.number()),
+      end: v.optional(v.number())
     })),
+    narratorVolume: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const result = await ctx.db.patch(args.recordId, {
@@ -46,6 +49,7 @@ export const CreateVideoData = mutation({
       createdBy: args.createdBy,
       status: 'pending',
       backgroundMusic: args.backgroundMusic,
+      narratorVolume: args.narratorVolume,
     });
 
     await ctx.db.patch(args.uid, {
@@ -94,11 +98,13 @@ export const UpdateCaptionsAndAudio = mutation({
     recordId: v.id('videoData'),
     audioUrl: v.optional(v.string()),
     captionJson: v.optional(v.any()),
+    narratorVolume: v.optional(v.number()),
   },
   handler: async (ctx,args)=>{
     const result =await ctx.db.patch(args.recordId,{
       audioUrl: args.audioUrl,
       captionJson: args.captionJson,
+      narratorVolume: args.narratorVolume,
     });
     return result
   }
@@ -124,7 +130,9 @@ export const UpdateBackgroundMusic = mutation({
     recordId: v.id('videoData'),
     backgroundMusic: v.optional(v.object({
       url: v.string(),
-      volume: v.number()
+      volume: v.number(),
+      start: v.optional(v.number()),
+      end: v.optional(v.number())
     }))
   },
   handler: async (ctx, args) => {

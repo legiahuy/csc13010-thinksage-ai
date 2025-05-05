@@ -55,6 +55,7 @@ const voiceOptions = [
 ];
 function Voice({ onHandleInputChange }) {
   const [selectedVoice, setSelectedVoice] = useState();
+
   return (
     <div className="mt-5">
       <h2>Video Voice</h2>
