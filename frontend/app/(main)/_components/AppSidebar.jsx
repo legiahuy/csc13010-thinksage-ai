@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/sidebar';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { HomeIcon, LucideFileVideo, LogOut } from 'lucide-react';
+import { HomeIcon, LucideFileVideo, LogOut, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthContext } from '@/app/providers';
@@ -31,6 +31,13 @@ const MenuItems = [
     type: 'link',
   },
   {
+    title: 'Manage Videos',
+    url: '/manage-videos',
+    icon: Settings,
+    type: 'link',
+    adminOnly: true,
+  },
+  {
     title: 'Log out',
     icon: LogOut,
     type: 'action',
@@ -41,11 +48,14 @@ const MenuItems = [
 function AppSidebar() {
   const path = usePathname();
   const router = useRouter();
-  const { signOut } = useAuthContext();
+  const { signOut, user } = useAuthContext();
+  const isAdmin = user?.role === 'admin';
+
   const handleLogout = async () => {
     await signOut();
     router.push('/');
   };
+
   return (
     <Sidebar>
       <SidebarHeader>
@@ -68,7 +78,9 @@ function AppSidebar() {
               </Link>
             </div>
             <SidebarMenu>
-              {MenuItems.filter((menu) => menu.type === 'link').map((menu, index) => (
+              {MenuItems.filter(
+                (menu) => menu.type === 'link' && (!menu.adminOnly || (menu.adminOnly && isAdmin))
+              ).map((menu, index) => (
                 <SidebarMenuItem className="mt-3 mx-3" key={index}>
                   <SidebarMenuButton isActive={path === menu.url} className="p-5">
                     <Link href={menu.url} className="flex items-center gap-4 p-3">
