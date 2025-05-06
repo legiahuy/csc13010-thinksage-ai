@@ -1,9 +1,11 @@
 import { google } from 'googleapis';
+import { serialize } from 'cookie';
 
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const code = searchParams.get('code');
+    const state = JSON.parse(searchParams.get('state') || '{}');
 
     const oauth2Client = new google.auth.OAuth2(
       process.env.YOUTUBE_CLIENT_ID,
@@ -14,22 +16,38 @@ export async function GET(req) {
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
 
-    console.log('ACCESS TOKEN:', tokens.access_token);
-    console.log('REFRESH TOKEN:', tokens.refresh_token);
+    const cookieHeader = [
+      serialize('accessToken', tokens.access_token, {
+        path: '/',
+        httpOnly: true,
+        secure: false,
+        maxAge: 3600,
+      }),
+      serialize('refreshToken', tokens.refresh_token, {
+        path: '/',
+        httpOnly: true,
+        secure: false,
+        maxAge: 7 * 24 * 60 * 60,
+      }),
+    ];
 
     return new Response(`
       <html>
         <body>
-          <h1>✅ Xác thực thành công</h1>
-          <p>Access token và Refresh token đã được log ra terminal.</p>
-          <p>Bạn có thể đóng tab này.</p>
+          <script>
+            window.opener?.postMessage("google-auth-success", "*");
+            window.close();
+          </script>
         </body>
       </html>
     `, {
-      headers: { 'Content-Type': 'text/html' },
+      headers: {
+        'Content-Type': 'text/html',
+        'Set-Cookie': cookieHeader
+      }
     });
   } catch (error) {
     console.error('OAuth error:', error);
-    return new Response('Lỗi xác thực OAuth. Kiểm tra terminal để xem chi tiết.', { status: 500 });
+    return new Response('Lỗi xác thực OAuth.', { status: 500 });
   }
 }

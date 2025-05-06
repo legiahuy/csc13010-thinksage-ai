@@ -21,7 +21,6 @@ function Authentication({ children }) {
         const credential = GoogleAuthProvider.credentialFromError(error);
       });
   };
-
   return <div onClick={onSignInClick}>{children}</div>;
 }
 
