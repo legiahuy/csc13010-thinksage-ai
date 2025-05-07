@@ -205,3 +205,21 @@ export const GetAllVideos = query({
     return result;
   },
 });
+
+export const saveYoutubeStats = mutation({
+  args: {
+    videoId: v.id("videoData"),
+    stats: v.object({
+      viewCount: v.string(),
+      likeCount: v.string(),
+      commentCount: v.string(),
+    }),
+    youtubeUrl: v.optional(v.string()), // ✅ Thêm url nếu có
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.videoId, {
+      youtubeStats: args.stats,
+      ...(args.youtubeUrl ? { youtubeUrl: args.youtubeUrl } : {}),
+    });
+  },
+});
