@@ -1,6 +1,4 @@
 'use client';
-import { useAuthContext } from '@/app/providers';
-import { Button } from '@/components/ui/button';
 import { useConvex } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import Image from 'next/image';
@@ -19,44 +17,51 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-function VideoList() {
+function GeneratedVideosList() {
   const [videoList, setVideoList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [videoToDelete, setVideoToDelete] = useState(null);
+  const [userDataMap, setUserDataMap] = useState({});
   const convex = useConvex();
-  const { user } = useAuthContext();
 
-  const GetUserVideoList = useCallback(async () => {
-    if (!user || !user._id) {
-      console.log('No user ID available');
-      setIsLoading(false);
-      return;
-    }
-
+  const GetAllVideos = useCallback(async () => {
     const GetPendingVideoStatus = (pendingVideo) => {
       const intervalId = setInterval(async () => {
-        //Get Video Data by Id
         const result = await convex.query(api.videoData.GetVideoById, {
           videoId: pendingVideo?._id,
         });
         if (result?.status == 'completed') {
           clearInterval(intervalId);
           console.log('Video Process Completed');
-          GetUserVideoList();
+          GetAllVideos();
         }
         console.log('Still Pending...');
       }, 5000);
     };
 
     setIsLoading(true);
-    // All user videos
     try {
-      const result = await convex.query(api.videoData.GetUserVideos, {
-        uid: user._id,
-      });
+      const result = await convex.query(api.videoData.GetAllVideos);
       console.log('Query result:', result);
       setVideoList(result);
+
+      // Fetch user data for each unique creator
+      const uniqueEmails = [...new Set(result.map((video) => video.createdBy))];
+      const userDataPromises = uniqueEmails.map((email) =>
+        convex.query(api.users.GetUserByEmail, { email })
+      );
+      const userDataResults = await Promise.all(userDataPromises);
+
+      // Create a map of email to user data
+      const userMap = {};
+      userDataResults.forEach((userData) => {
+        if (userData) {
+          userMap[userData.email] = userData;
+        }
+      });
+      setUserDataMap(userMap);
+
       const isPendingVideo = result?.find((item) => item.status == 'pending');
       isPendingVideo && GetPendingVideoStatus(isPendingVideo);
     } catch (error) {
@@ -64,7 +69,7 @@ function VideoList() {
     } finally {
       setIsLoading(false);
     }
-  }, [convex, user]);
+  }, [convex]);
 
   const handleDeleteVideo = async () => {
     if (!videoToDelete) return;
@@ -75,17 +80,15 @@ function VideoList() {
       });
       setDeleteDialogOpen(false);
       setVideoToDelete(null);
-      GetUserVideoList(); // Refresh the list
+      GetAllVideos(); // Refresh the list
     } catch (error) {
       console.error('Error deleting video:', error);
     }
   };
 
   useEffect(() => {
-    if (user && user._id) {
-      GetUserVideoList();
-    }
-  }, [user, GetUserVideoList]);
+    GetAllVideos();
+  }, [GetAllVideos]);
 
   if (isLoading) {
     return (
@@ -101,12 +104,7 @@ function VideoList() {
       {videoList?.length == 0 ? (
         <div className="flex flex-col items-center justify-center mt-28 gap-5 border border-dashed rounded-x py-16">
           <Image src={'/logo.svg'} alt="logo" width={60} height={60} />
-          <h2 className="text-gray-400 text-lg">
-            You don&apos;t have any video created. Create new one!
-          </h2>
-          <Link href={'/create-new-video'}>
-            <Button>+ Create New Video</Button>
-          </Link>
+          <h2 className="text-gray-400 text-lg">No videos found in the system.</h2>
         </div>
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5 mt-10">
@@ -135,6 +133,22 @@ function VideoList() {
                   </div>
                 </div>
               </Link>
+
+              {/* Creator Info */}
+              <div className="mt-2 flex items-center gap-2 px-2">
+                <div className="w-8 h-8 rounded-full overflow-hidden">
+                  <Image
+                    src={userDataMap[video?.createdBy]?.pictureURL || '/default-avatar.png'}
+                    alt={userDataMap[video?.createdBy]?.name || 'User'}
+                    width={32}
+                    height={32}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <span className="text-sm text-gray-400 truncate">
+                  {userDataMap[video?.createdBy]?.name || 'Unknown User'}
+                </span>
+              </div>
 
               {/* Delete Button (shows on hover) */}
               <button
@@ -174,4 +188,4 @@ function VideoList() {
   );
 }
 
-export default VideoList;
+export default GeneratedVideosList;

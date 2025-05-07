@@ -1,6 +1,5 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,6 +9,13 @@ import { useAuthContext } from '@/app/providers';
 import { toast } from 'react-toastify';
 import PropTypes from 'prop-types';
 import { ExternalLink } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const suggestions = [
   'Historic Story',
@@ -28,6 +34,11 @@ const suggestions = [
 
 const Audience = ['Kids', 'Teens', 'Adults', 'Seniors'];
 const Purpose = ['Informative', 'Educational', 'Entertainment', 'Motivational'];
+const AIServices = [
+  { id: 'gemini', name: 'Google Gemini', description: 'Advanced AI by Google' },
+  { id: 'gpt', name: 'OpenAI GPT', description: 'Powerful language model by OpenAI' },
+  { id: 'deepseek', name: 'DeepSeek', description: 'Advanced AI by DeepSeek' },
+];
 
 function Topic({ onHandleInputChange }) {
   const [selectedTopic, setSelectedTopic] = useState(null);
@@ -41,6 +52,7 @@ function Topic({ onHandleInputChange }) {
   const [editedScript, setEditedScript] = useState('');
   const [tabMode, setTabMode] = useState('suggestion');
   const [sources, setSources] = useState([]);
+  const [selectedAIService, setSelectedAIService] = useState('gemini');
 
   // Function to generate the script dynamically
   const GenerateScript = async () => {
@@ -57,11 +69,13 @@ function Topic({ onHandleInputChange }) {
         topic: selectedTopic,
         audience: AudienceType,
         purpose: PurposeType,
+        aiService: selectedAIService,
       });
 
       setScripts(result.data?.scripts || []);
     } catch (error) {
       console.error('Error generating script:', error);
+      toast.error('Failed to generate script. Please try again.');
     }
     setLoading(false);
   };
@@ -90,7 +104,7 @@ function Topic({ onHandleInputChange }) {
     if (tabMode === 'suggestion') {
       GenerateScript();
     }
-  }, [selectedTopic, AudienceType, PurposeType, tabMode]);
+  }, [selectedTopic, AudienceType, PurposeType, tabMode, selectedAIService]);
 
   const handleEditScript = (index, content) => {
     setEditingScriptIndex(index);
@@ -200,7 +214,38 @@ function Topic({ onHandleInputChange }) {
           ))}
         </div>
       </div>
-      <p className='mt-5 text-sm text-gray-400'>Please select topic, audience and purpose to create scripts</p>
+
+      {tabMode === 'suggestion' && (
+        <div className="mt-5">
+          <h2>AI Service</h2>
+          <p className="text-sm text-gray-600">Select your preferred AI service</p>
+          <Select
+            value={selectedAIService}
+            onValueChange={(value) => {
+              setSelectedAIService(value);
+              onHandleInputChange('aiService', value);
+            }}
+          >
+            <SelectTrigger className="w-full mt-2 py-6">
+              <SelectValue placeholder="Select AI Service" />
+            </SelectTrigger>
+            <SelectContent>
+              {AIServices.map((service) => (
+                <SelectItem key={service.id} value={service.id}>
+                  <div className="flex flex-col items-start">
+                    <span>{service.name}</span>
+                    <span className="text-xs text-gray-500">{service.description}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      <p className="mt-5 text-sm text-gray-300">
+        Please select topic, audience, purpose and preferred AI service to create scripts
+      </p>
       {tabMode === 'your_topic' && (
         <Button
           className="mt-5"

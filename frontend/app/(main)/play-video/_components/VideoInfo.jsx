@@ -1,8 +1,9 @@
 'use client';
+import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, DownloadIcon, UploadCloudIcon } from 'lucide-react';
-import Link from 'next/link';
-import React, { useState, useEffect } from 'react';
 import { useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import VideoStats from '../_components/VideoStats';
@@ -19,7 +20,7 @@ function VideoInfo({ videoData }) {
   const saveYoutubeStats = useMutation(api.videoData.saveYoutubeStats);
 
   const handleActualUpload = async () => {
-    if (!videoData || !videoData.downloadUrl) return;
+    if (!videoData?.downloadUrl) return;
 
     setIsUploading(true);
     setUploadError(null);
@@ -76,7 +77,7 @@ function VideoInfo({ videoData }) {
   };
 
   const handleShareToYouTube = () => {
-    if (!videoData || !videoData.downloadUrl) {
+    if (!videoData?.downloadUrl) {
       alert('Video chưa sẵn sàng.');
       return;
     }
@@ -95,7 +96,7 @@ function VideoInfo({ videoData }) {
     try {
       const res = await fetch(`/api/youtube-stats?videoId=${id}`);
       const data = await res.json();
-      if (!data || !data.stats) return;
+      if (!data?.stats) return;
 
       const stats = {
         viewCount: data.stats.viewCount || '0',
@@ -154,6 +155,21 @@ function VideoInfo({ videoData }) {
     return () => clearInterval(intervalId);
   }, [youtubeUrl, videoData]);
 
+  const getDownloadLink = (url) => {
+    try {
+      const parts = url.split('/upload/');
+      return parts.length === 2 ? `${parts[0]}/upload/fl_attachment/${parts[1]}` : url;
+    } catch {
+      return url;
+    }
+  };
+
+  const handleDownloadClick = () => {
+    if (!videoData?.downloadUrl) {
+      alert('The video is still processing. Please try again later.');
+    }
+  };
+
   return (
     <div className="p-5 border rounded-xl">
       <Link href="/dashboard">
@@ -168,10 +184,25 @@ function VideoInfo({ videoData }) {
         <p className="text-gray-500">Script: {videoData?.script}</p>
         <h2>Video Style: {videoData?.videoStyle}</h2>
 
-        <Button>
-          <DownloadIcon className="mr-2" />
-          Export & Download
-        </Button>
+        {videoData?.downloadUrl ? (
+          <a
+            href={getDownloadLink(videoData.downloadUrl)}
+            download
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full"
+          >
+            <Button className="w-full flex items-center gap-2 justify-center">
+              <DownloadIcon className="w-4 h-4" />
+              Export & Download
+            </Button>
+          </a>
+        ) : (
+          <Button className="w-full flex items-center gap-2 justify-center" onClick={handleDownloadClick}>
+            <DownloadIcon className="w-4 h-4" />
+            Export & Download
+          </Button>
+        )}
 
         {videoData?.downloadUrl && !(youtubeUrl || videoData?.youtubeUrl) && (
           <Button onClick={handleShareToYouTube} disabled={isUploading} variant="outline">
@@ -191,7 +222,12 @@ function VideoInfo({ videoData }) {
           <div className="text-green-600">
             <p>
               ✅ Video uploaded successfully:
-              <a href={youtubeUrl || videoData?.youtubeUrl} target="_blank" rel="noopener noreferrer" className="ml-2 underline">
+              <a
+                href={youtubeUrl || videoData?.youtubeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-2 underline"
+              >
                 Watch on YouTube
               </a>
             </p>
@@ -211,8 +247,23 @@ function VideoInfo({ videoData }) {
           </div>
         )}
       </div>
+
+      {/* 📊 Stats moved to bottom */}
+      <VideoStats videoStats={videoStats} lastUpdated={lastUpdated} fetchStats={fetchStats} />
     </div>
   );
 }
+
+VideoInfo.propTypes = {
+  videoData: PropTypes.shape({
+    title: PropTypes.string,
+    script: PropTypes.string,
+    videoStyle: PropTypes.string,
+    downloadUrl: PropTypes.string,
+    youtubeUrl: PropTypes.string,
+    _id: PropTypes.string,
+    youtubeStats: PropTypes.object,
+  }),
+};
 
 export default VideoInfo;
