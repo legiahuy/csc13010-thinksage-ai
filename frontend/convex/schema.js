@@ -23,5 +23,11 @@ export default defineSchema({
     createdBy: (v.string()),
     status: v.optional(v.string()),
     downloadUrl: v.optional(v.string()),
+    youtubeStats: v.optional(v.object({
+      viewCount: v.string(),
+      likeCount: v.string(),
+      commentCount: v.string()
+    })),
+    youtubeUrl: v.optional(v.string())
   }),
 });

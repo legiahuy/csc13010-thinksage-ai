@@ -3,20 +3,23 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, DownloadIcon, UploadCloudIcon } from 'lucide-react';
 import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
-
-
+import { useMutation } from 'convex/react';
+import { api } from '@/convex/_generated/api';
+import VideoStats from '../_components/VideoStats';
 
 function VideoInfo({ videoData }) {
   const [isUploading, setIsUploading] = useState(false);
   const [youtubeUrl, setYoutubeUrl] = useState(null);
   const [uploadError, setUploadError] = useState(null);
   const [videoStatus, setVideoStatus] = useState(null);
+  const [videoStats, setVideoStats] = useState(null);
+  const [videoId, setVideoId] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
+
+  const saveYoutubeStats = useMutation(api.videoData.saveYoutubeStats);
 
   const handleActualUpload = async () => {
-    if (!videoData || !videoData.downloadUrl) {
-      console.warn('⚠️ videoData chưa sẵn sàng, không thể upload.');
-      return;
-    }
+    if (!videoData || !videoData.downloadUrl) return;
 
     setIsUploading(true);
     setUploadError(null);
@@ -37,7 +40,7 @@ function VideoInfo({ videoData }) {
       if (!res.ok) {
         const errorData = await res.json();
         if (errorData.code === 'AUTH_ERROR') {
-          window.alert('Chưa đăng nhập Google. Hãy thử lại.');
+          alert('Chưa đăng nhập Google. Hãy thử lại.');
           return;
         }
         throw new Error(errorData.details || errorData.error || 'Upload failed');
@@ -47,22 +50,25 @@ function VideoInfo({ videoData }) {
       setYoutubeUrl(data.youtubeUrl);
       setVideoStatus(data.status);
 
+      const vidId = data.videoId;
+      setVideoId(vidId);
+      fetchStats(vidId);
+
       const checkVideoStatus = async () => {
         try {
-          const statusRes = await fetch(`/api/youtube-status?videoId=${data.videoId}`);
+          const statusRes = await fetch(`/api/youtube-status?videoId=${vidId}`);
           const statusData = await statusRes.json();
           setVideoStatus(statusData.status);
 
           if (statusData?.status?.uploadStatus === 'processed') return;
           setTimeout(checkVideoStatus, 10000);
-        } catch (error) {
-          console.error('Error checking video status:', error);
+        } catch (err) {
+          console.error('Error checking video status:', err);
         }
       };
 
       checkVideoStatus();
     } catch (err) {
-      console.error('Upload failed:', err);
       setUploadError(err.message || 'Unknown error');
     } finally {
       setIsUploading(false);
@@ -71,7 +77,7 @@ function VideoInfo({ videoData }) {
 
   const handleShareToYouTube = () => {
     if (!videoData || !videoData.downloadUrl) {
-      window.alert('Video chưa sẵn sàng.');
+      alert('Video chưa sẵn sàng.');
       return;
     }
 
@@ -82,16 +88,71 @@ function VideoInfo({ videoData }) {
     );
   };
 
+  const fetchStats = async (idOverride) => {
+    const id = idOverride || videoId;
+    if (!id) return;
+
+    try {
+      const res = await fetch(`/api/youtube-stats?videoId=${id}`);
+      const data = await res.json();
+      if (!data || !data.stats) return;
+
+      const stats = {
+        viewCount: data.stats.viewCount || '0',
+        likeCount: data.stats.likeCount || '0',
+        commentCount: data.stats.commentCount || '0',
+      };
+
+      setVideoStats(stats);
+      setLastUpdated(new Date());
+
+      if (videoData?._id) {
+        await saveYoutubeStats({
+          videoId: videoData._id,
+          stats,
+          youtubeUrl: youtubeUrl || videoData.youtubeUrl,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch video stats:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (videoData?.youtubeStats) {
+      setVideoStats(videoData.youtubeStats);
+    }
+  }, [videoData]);
+
   useEffect(() => {
     const listener = (event) => {
-      console.log('[message received from popup]', event.data);
       if (event.data === 'google-auth-success') {
         handleActualUpload();
       }
     };
     window.addEventListener('message', listener);
     return () => window.removeEventListener('message', listener);
-  }, [videoData]); // ✅ gắn videoData làm dependency
+  }, [videoData]);
+
+  useEffect(() => {
+    let intervalId;
+    const ytUrl = youtubeUrl || videoData?.youtubeUrl;
+
+    if (ytUrl) {
+      try {
+        const idFromUrl = new URL(ytUrl)?.searchParams.get('v') || ytUrl?.split('v=')[1];
+        if (idFromUrl) {
+          setVideoId(idFromUrl);
+          fetchStats(idFromUrl);
+          intervalId = setInterval(() => fetchStats(idFromUrl), 5 * 60 * 1000);
+        }
+      } catch (err) {
+        console.error('Invalid YouTube URL:', ytUrl);
+      }
+    }
+
+    return () => clearInterval(intervalId);
+  }, [youtubeUrl, videoData]);
 
   return (
     <div className="p-5 border rounded-xl">
@@ -112,46 +173,41 @@ function VideoInfo({ videoData }) {
           Export & Download
         </Button>
 
-        {videoData?.downloadUrl && (
-          <Button
-            onClick={handleShareToYouTube}
-            disabled={isUploading}
-            variant="outline"
-          >
+        {videoData?.downloadUrl && !(youtubeUrl || videoData?.youtubeUrl) && (
+          <Button onClick={handleShareToYouTube} disabled={isUploading} variant="outline">
             <UploadCloudIcon className="mr-2" />
             {isUploading ? 'Uploading to YouTube...' : 'Share to YouTube'}
           </Button>
         )}
 
-{youtubeUrl && videoStatus?.uploadStatus === 'processed' && (
-  <div className="text-green-600">
-    <p>
-    ✅ Video uploaded successfully:
-      <a
-        href={youtubeUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="ml-2 underline"
-      >
-        Watch on YouTube
-      </a>
-    </p>
-  </div>
-)}
+        {(youtubeUrl || videoData?.youtubeUrl) && (
+          <Button disabled variant="secondary" className="opacity-60 cursor-not-allowed">
+            <UploadCloudIcon className="mr-2" />
+            Video already shared
+          </Button>
+        )}
 
-{youtubeUrl && videoStatus?.uploadStatus !== 'processed' && (
-  <div className="text-yellow-700">
-     <p>⏳ The video is still being processed by YouTube...</p>
-  </div>
-)}
+        {(youtubeUrl || videoData?.youtubeUrl) && (
+          <div className="text-green-600">
+            <p>
+              ✅ Video uploaded successfully:
+              <a href={youtubeUrl || videoData?.youtubeUrl} target="_blank" rel="noopener noreferrer" className="ml-2 underline">
+                Watch on YouTube
+              </a>
+            </p>
+          </div>
+        )}
 
+        {youtubeUrl && videoStatus?.uploadStatus !== 'processed' && (
+          <div className="text-yellow-700">
+            <p>⏳ The video is still being processed by YouTube...</p>
+          </div>
+        )}
 
         {uploadError && (
           <div className="text-red-600">
             <p>❌ Upload error: {uploadError}</p>
-            <small className="text-sm text-gray-500">
-            Please check the browser console for more details.
-            </small>
+            <small className="text-sm text-gray-500">Please check the browser console for more details.</small>
           </div>
         )}
       </div>

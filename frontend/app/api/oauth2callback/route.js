@@ -21,7 +21,7 @@ export async function GET(req) {
         path: '/',
         httpOnly: true,
         secure: false,
-        maxAge: 3600,
+        maxAge: 7 * 24 * 60 * 60,
       }),
       serialize('refreshToken', tokens.refresh_token, {
         path: '/',
