@@ -26,13 +26,16 @@ export default defineSchema({
     downloadUrl: v.optional(v.string()),
     backgroundMusic: v.optional(v.object({
       url: v.string(),
-      volume: v.number()
+      volume: v.number(),
+      start: v.optional(v.number()),
+      end: v.optional(v.number())
     })),
     youtubeStats: v.optional(v.object({
       viewCount: v.string(),
       likeCount: v.string(),
       commentCount: v.string()
     })),
-    youtubeUrl: v.optional(v.string())
+    youtubeUrl: v.optional(v.string()),
+    narratorVolume: v.optional(v.number()),
   }),
 });

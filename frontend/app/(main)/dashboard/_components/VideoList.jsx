@@ -27,6 +27,14 @@ function VideoList() {
   const convex = useConvex();
   const { user } = useAuthContext();
 
+  // Helper to safely extract image URL
+  const getImageUrl = (img) => {
+    if (!img) return '';
+    if (typeof img === 'string') return img;
+    if (typeof img === 'object' && img.url) return img.url;
+    return '';
+  };
+
   const GetUserVideoList = useCallback(async () => {
     if (!user || !user._id) {
       console.log('No user ID available');
@@ -98,7 +106,7 @@ function VideoList() {
 
   return (
     <div>
-      {videoList?.length == 0 ? (
+      {videoList?.length === 0 ? (
         <div className="flex flex-col items-center justify-center mt-28 gap-5 border border-dashed rounded-x py-16">
           <Image src={'/logo.svg'} alt="logo" width={60} height={60} />
           <h2 className="text-gray-400 text-lg">
@@ -110,45 +118,47 @@ function VideoList() {
         </div>
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5 mt-10">
-          {videoList?.map((video, index) => (
-            <div key={index} className="group relative">
-              <Link href={'/play-video/' + video?._id}>
-                <div className="relative">
-                  {video?.status == 'completed' ? (
-                    <Image
-                      src={video?.images[0]}
-                      alt={video?.title}
-                      width={500}
-                      height={500}
-                      priority={index === 0}
-                      className="w-full object-cover rounded-xl aspect-[2/3]"
-                    />
-                  ) : (
-                    <div className="aspect-[2/3] p-5 w-full rounded-xl bg-slate-900 flex items-center justify-center">
-                      <RefreshCcw className="animate-spin mr-2" />
-                      <h2>Generating...</h2>
+          {videoList?.map((video, index) => {
+            const imageUrl = getImageUrl(video?.images?.[0]);
+            return (
+              <div key={index} className="group relative">
+                <Link href={'/play-video/' + video?._id}>
+                  <div className="relative">
+                    {video?.status === 'completed' && imageUrl && typeof imageUrl === 'string' && imageUrl.trim() !== '' ? (
+                      <Image
+                        src={imageUrl}
+                        alt={video?.title || 'Video thumbnail'}
+                        width={500}
+                        height={500}
+                        priority={index === 0}
+                        className="w-full object-cover rounded-xl aspect-[2/3]"
+                      />
+                    ) : (
+                      <div className="aspect-[2/3] p-5 w-full rounded-xl bg-slate-900 flex items-center justify-center">
+                        <RefreshCcw className="animate-spin mr-2" />
+                        <h2>Generating...</h2>
+                      </div>
+                    )}
+                    <div className="absolute bottom-3 px-5 w-full">
+                      <h2>{video?.title}</h2>
+                      <h2 className="text-sm">{moment(video?._creationTime).fromNow()}</h2>
                     </div>
-                  )}
-                  <div className="absolute bottom-3 px-5 w-full">
-                    <h2>{video?.title}</h2>
-                    <h2 className="text-sm">{moment(video?._creationTime).fromNow()}</h2>
                   </div>
-                </div>
-              </Link>
-
-              {/* Delete Button (shows on hover) */}
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  setVideoToDelete(video);
-                  setDeleteDialogOpen(true);
-                }}
-                className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
+                </Link>
+                {/* Delete Button (shows on hover) */}
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setVideoToDelete(video);
+                    setDeleteDialogOpen(true);
+                  }}
+                  className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
 

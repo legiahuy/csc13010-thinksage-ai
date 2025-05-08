@@ -10,18 +10,31 @@ export const RemotionRoot = () => {
         id="Composition"
         component={RemotionComposition}
         calculateMetadata={({ props }) => {
-          // Calculate duration based on the end time of the last caption
-          const durationInFrames = props.videoData.captionJson?.length
-            ? Number(
-                (
-                  props.videoData.captionJson[props.videoData.captionJson.length - 1]?.end * 30
-                ).toFixed(0)
-              )
-            : 30 * 30; // Fallback to 30 seconds if no captions
+          const fps = 30;
+          
+          // Calculate duration based on images with proper timing
+          let imageDuration = 0;
+          if (props.videoData.images?.length) {
+            imageDuration = props.videoData.images.reduce((total, item) => {
+              const durationSec = Number(item.duration) || 1;
+              return total + durationSec;
+            }, 0);
+          }
 
+          // Calculate duration based on captions
+          const captionDuration = props.videoData.captionJson?.length
+            ? props.videoData.captionJson[props.videoData.captionJson.length - 1]?.end
+            : 30; // Fallback to 30 seconds if no captions
+
+          // Use the longer duration between images and captions
+          const durationInSeconds = Math.max(imageDuration, captionDuration);
+          
+          // Add a small buffer to ensure no content is cut off
+          const finalDuration = durationInSeconds + 0.5;
+          
           return {
-            durationInFrames,
-            fps: 30,
+            durationInFrames: Math.ceil(finalDuration * fps),
+            fps,
             width: 720,
             height: 1280,
           };
@@ -47,7 +60,12 @@ RemotionRoot.propTypes = {
       })
     ),
     audioUrl: PropTypes.string,
-    images: PropTypes.array,
+    images: PropTypes.arrayOf(
+      PropTypes.shape({
+        duration: PropTypes.number,
+        url: PropTypes.string,
+      })
+    ),
     caption: PropTypes.object,
   }),
 };

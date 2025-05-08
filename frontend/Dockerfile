@@ -44,8 +44,8 @@ COPY --chown=node:node app/globals.css ./app/globals.css
 # Install dependencies
 RUN npm install
 
-RUN npm run build:css || true
-
+# Build CSS with proper error handling
+RUN npm run build:tailwind || (echo "CSS build failed" && exit 1)
 
 # Install Chrome
 RUN npx remotion browser ensure

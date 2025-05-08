@@ -5,6 +5,8 @@ import { api } from '@/convex/_generated/api';
 import { ConvexHttpClient } from 'convex/browser';
 import { createClient } from '@deepgram/sdk';
 import { v2 as cloudinary } from 'cloudinary';
+import path from 'path';
+import fs from 'fs';
 
 const BASE_URL = 'https://aigurulab.tech';
 const ImagePromptScript = `Generate Image prompt of {style} style with all details for each scene for a 30 second video: script: {script}
@@ -25,51 +27,82 @@ export const GenImg = inngest.createFunction(
       throw new Error('Event data is required');
     }
     const { script, videoStyle, recordId } = event.data;
+    console.log('Starting image generation with data:', { script, videoStyle, recordId });
     const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
     const GenerateImagePrompt = await step.run('generateImagePrompt', async () => {
-      const FINAL_SCRIPT = ImagePromptScript.replace('{style}', videoStyle).replace(
-        '{script}',
-        script
-      );
-      const result = await GenerateImageScript.sendMessage(FINAL_SCRIPT);
-      const resp = JSON.parse(result.response.text());
-      return resp;
+      try {
+        const FINAL_SCRIPT = ImagePromptScript.replace('{style}', videoStyle).replace(
+          '{script}',
+          script
+        );
+        console.log('Generating image prompts with script:', FINAL_SCRIPT);
+        const result = await GenerateImageScript.sendMessage(FINAL_SCRIPT);
+        console.log('Image prompt generation result:', result);
+        const resp = JSON.parse(result.response.text());
+        return resp;
+      } catch (error) {
+        console.error('Error generating image prompts:', error);
+        throw new Error(`Failed to generate image prompts: ${error.message}`);
+      }
     });
+
     //generate image
     const GenerateImages = await step.run('generateImages', async () => {
-      let images = [];
-      images = await Promise.all(
-        GenerateImagePrompt.map(async (element) => {
-          const result = await axios.post(
-            BASE_URL + '/api/generate-image',
-            {
-              width: 1024,
-              height: 1024,
-              input: element?.imagePrompt,
-              model: 'sdxl', //'flux'
-              aspectRatio: '1:1', //Applicable to Flux model only
-            },
-            {
-              headers: {
-                'x-api-key': process.env.NEXT_PUBLIC_AIGURULAB_API_KEY, // Your API Key
-                'Content-Type': 'application/json', // Content Type
+      try {
+        let images = [];
+        images = await Promise.all(
+          GenerateImagePrompt.map(async (element) => {
+            const result = await axios.post(
+              BASE_URL + '/api/generate-image',
+              {
+                width: 1024,
+                height: 1024,
+                input: element?.imagePrompt,
+                model: 'sdxl', //'flux'
+                aspectRatio: '1:1', //Applicable to Flux model only
               },
-            }
-          );
-          console.log(result.data.image); //Output Result: Base 64 Image
-          return result.data.image;
-        })
-      );
-      return images;
+              {
+                headers: {
+                  'x-api-key': process.env.NEXT_PUBLIC_AIGURULAB_API_KEY, // Your API Key
+                  'Content-Type': 'application/json', // Content Type
+                },
+              }
+            );
+            console.log(result.data.image); //Output Result: Base 64 Image
+            return result.data.image;
+          })
+        );
+        return images;
+      } catch (error) {
+        console.error('Error generating images:', error);
+        if (error.response) {
+          console.error('API Response:', error.response.data);
+          console.error('Status:', error.response.status);
+          console.error('Headers:', error.response.headers);
+        } else if (error.request) {
+          console.error('No response received:', error.request);
+        } else {
+          console.error('Error setting up request:', error.message);
+        }
+        throw new Error(`Failed to generate images: ${error.message}`);
+      }
     });
+
     //Save all to db
     await step.run('updateDB', async () => {
-      const result = await convex.mutation(api.videoData.UpdateImages, {
-        recordId: recordId,
-        images: GenerateImages,
-      });
-      return result;
+      try {
+        console.log('Updating database with images:', GenerateImages);
+        const result = await convex.mutation(api.videoData.UpdateImages, {
+          recordId: recordId,
+          images: GenerateImages,
+        });
+        console.log('Database update result:', result);
+        return result;
+      } catch (error) {
+        console.error('Error updating database:', error);
+        throw new Error(`Failed to update database: ${error.message}`);
+      }
     });
   }
 );
@@ -130,38 +163,33 @@ export const GenAudio = inngest.createFunction(
 );
 
 export const GenVideo = inngest.createFunction(
-  { id: 'generate-video' },
-  { event: 'generate-video' },
+  { name: "Generate Video" },
+  { event: "video/generate" },
   async ({ event, step }) => {
-    if (!event?.data) {
-      throw new Error('Event data is required');
-    }
     const { recordId } = event.data;
-
-    if (!recordId) {
-      throw new Error('recordId is required to generate video');
-    }
     const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
-    // First, query the necessary data from Convex using the recordId
-    const VideoData = await step.run('fetchVideoData', async () => {
-      // Fetch the video data from Convex using the GetVideoById query
-      // (since recordId is already the ID we need)
-      const videoRecord = await convex.query(api.videoData.GetVideoById, {
+    // Fetch DB values for fallback
+    const VideoData = await step.run("Fetch Video Data", async () => {
+      const result = await convex.query(api.videoData.GetVideoById, {
         videoId: recordId,
       });
+      return result;
+    });
 
-      if (!videoRecord) {
-        throw new Error(`Video record with ID ${recordId} not found`);
-      }
+    // Use event.data for latest values, fallback to DB if not present
+    const videoData = {
+      ...VideoData,
+      ...event.data,
+      images: event.data.mediaItems || VideoData.images || [],
+      backgroundMusic: event.data.backgroundMusic || VideoData.backgroundMusic || undefined,
+      narratorVolume: event.data.narratorVolume ?? VideoData.narratorVolume,
+    };
 
-      return {
-        recordId,
-        audioUrl: videoRecord.audioUrl,
-        captionJson: videoRecord.captionJson,
-        images: videoRecord.images,
-        caption: videoRecord.caption,
-      };
+    // Write video data to JSON file
+    await step.run("Write Video Data", async () => {
+      const jsonData = JSON.stringify(videoData);
+      fs.writeFileSync(path.join(process.cwd(), "public", "videoData.json"), jsonData);
     });
 
     const RenderVideo = await step.run('renderVideo', async () => {
@@ -177,21 +205,16 @@ export const GenVideo = inngest.createFunction(
         fs.mkdirSync(tempDir, { recursive: true });
       }
 
-      // Prepare the video data
-      const videoData = {
-        videoData: {
-          audioUrl: VideoData.audioUrl,
-          captionJson: VideoData.captionJson,
-          images: VideoData.images,
-          caption: VideoData.caption,
-        },
+      // Prepare the video data for Docker
+      const dockerVideoData = {
+        videoData: videoData,
       };
 
-      console.log('Rendering video with data:', videoData);
+      console.log('Rendering video with data:', dockerVideoData);
 
       // Write the video data to a JSON file
       const videoDataPath = path.join(tempDir, 'videoData.json');
-      fs.writeFileSync(videoDataPath, JSON.stringify(videoData), 'utf8');
+      fs.writeFileSync(videoDataPath, JSON.stringify(dockerVideoData), 'utf8');
 
       // Create output directory if it doesn't exist
       const outputDir = path.join(tempDir, 'output');
@@ -260,7 +283,7 @@ export const GenVideo = inngest.createFunction(
 
     await step.run('UpdateDownloadUrl', async () => {
       const result = await convex.mutation(api.videoData.UpdateCompletedvideo, {
-        recordId: VideoData.recordId,
+        recordId: recordId,
         downloadUrl: RenderVideo,
         status: 'completed',
       });
@@ -268,5 +291,37 @@ export const GenVideo = inngest.createFunction(
     });
 
     return RenderVideo;
+  }
+);
+
+export const UploadMusic = inngest.createFunction(
+  { id: 'upload-music' },
+  { event: 'upload-music' },
+  async ({ event, step }) => {
+    if (!event?.data) {
+      throw new Error('Event data is required');
+    }
+    const { recordId, downloadUrl } = event.data;
+    console.log('Processing music upload:', { recordId, downloadUrl });
+    const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
+
+    // Update video data with music URL
+    await step.run('updateDB', async () => {
+      try {
+        console.log('Updating database with music URL:', downloadUrl);
+        const result = await convex.mutation(api.videoData.UpdateBackgroundMusic, {
+          recordId: recordId,
+          backgroundMusic: {
+            url: downloadUrl,
+            volume: 50 // Default volume
+          }
+        });
+        console.log('Database update result:', result);
+        return result;
+      } catch (error) {
+        console.error('Error updating database:', error);
+        throw new Error(`Failed to update database: ${error.message}`);
+      }
+    });
   }
 );

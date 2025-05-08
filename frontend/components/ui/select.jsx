@@ -3,14 +3,13 @@
 import * as React from 'react';
 import * as SelectPrimitive from '@radix-ui/react-select';
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from 'lucide-react';
-import PropTypes from 'prop-types'; // Import PropTypes
+import PropTypes from 'prop-types';
 
 import { cn } from '@/lib/utils';
 
 function Select({ ...props }) {
   return <SelectPrimitive.Root data-slot="select" {...props} />;
 }
-
 Select.propTypes = {
   children: PropTypes.node,
 };
@@ -18,7 +17,6 @@ Select.propTypes = {
 function SelectGroup({ ...props }) {
   return <SelectPrimitive.Group data-slot="select-group" {...props} />;
 }
-
 SelectGroup.propTypes = {
   children: PropTypes.node,
 };
@@ -26,7 +24,6 @@ SelectGroup.propTypes = {
 function SelectValue({ ...props }) {
   return <SelectPrimitive.Value data-slot="select-value" {...props} />;
 }
-
 SelectValue.propTypes = {
   children: PropTypes.node,
 };
@@ -49,7 +46,6 @@ function SelectTrigger({ className, size = 'default', children, ...props }) {
     </SelectPrimitive.Trigger>
   );
 }
-
 SelectTrigger.propTypes = {
   className: PropTypes.string,
   size: PropTypes.string,
@@ -85,7 +81,6 @@ function SelectContent({ className, children, position = 'popper', ...props }) {
     </SelectPrimitive.Portal>
   );
 }
-
 SelectContent.propTypes = {
   className: PropTypes.string,
   children: PropTypes.node,
@@ -101,7 +96,6 @@ function SelectLabel({ className, ...props }) {
     />
   );
 }
-
 SelectLabel.propTypes = {
   className: PropTypes.string,
   children: PropTypes.node,
@@ -126,7 +120,6 @@ function SelectItem({ className, children, ...props }) {
     </SelectPrimitive.Item>
   );
 }
-
 SelectItem.propTypes = {
   className: PropTypes.string,
   children: PropTypes.node,
@@ -141,7 +134,6 @@ function SelectSeparator({ className, ...props }) {
     />
   );
 }
-
 SelectSeparator.propTypes = {
   className: PropTypes.string,
 };
@@ -157,7 +149,6 @@ function SelectScrollUpButton({ className, ...props }) {
     </SelectPrimitive.ScrollUpButton>
   );
 }
-
 SelectScrollUpButton.propTypes = {
   className: PropTypes.string,
 };
@@ -173,7 +164,6 @@ function SelectScrollDownButton({ className, ...props }) {
     </SelectPrimitive.ScrollDownButton>
   );
 }
-
 SelectScrollDownButton.propTypes = {
   className: PropTypes.string,
 };
