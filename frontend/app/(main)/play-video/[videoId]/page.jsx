@@ -50,7 +50,6 @@ function PlayVideo() {
           onLastUpdatedChange={setLastUpdated}
         />
       </div>
-
       <VideoStats
         videoStats={videoStats}
         lastUpdated={lastUpdated}

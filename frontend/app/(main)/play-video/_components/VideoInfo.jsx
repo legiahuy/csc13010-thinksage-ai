@@ -247,9 +247,6 @@ function VideoInfo({ videoData }) {
           </div>
         )}
       </div>
-
-      {/* 📊 Stats moved to bottom */}
-      <VideoStats videoStats={videoStats} lastUpdated={lastUpdated} fetchStats={fetchStats} />
     </div>
   );
 }
