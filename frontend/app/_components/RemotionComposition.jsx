@@ -87,54 +87,53 @@ function RemotionComposition({ videoData }) {
           const durationFrames = Math.floor(durationSec * fps);
           const transition = item.transition || 'fade';
           
-          // Ensure transition duration is valid and won't cause duplicate values
-          const minTransition = 1; // Minimum transition duration in frames
-          const maxTransition = Math.max(minTransition, Math.min(30, Math.floor(durationFrames / 2) - 1));
-          const transitionDuration = maxTransition;
+          // Calculate transition timing
+          const transitionDuration = Math.min(30, Math.floor(durationFrames / 3));
           
-          // Calculate when the next image should start appearing
-          const nextImageStartTime = startFrame + durationFrames - transitionDuration;
+          // Calculate frame ranges for transitions - only fade in
+          const fadeInStart = startFrame;
+          const fadeInEnd = startFrame + transitionDuration;
 
-          // More subtle scale effect with easing
-          const scale = interpolate(
+          // Calculate opacity - only fade in, stay at 1
+          const opacity = interpolate(
             frame,
-            [startFrame, startFrame + durationFrames / 2, startFrame + durationFrames],
-            [1, 1.1, 1],
-            { 
-              extrapolateLeft: 'clamp', 
+            [fadeInStart, fadeInEnd],
+            [0, 1],
+            {
+              extrapolateLeft: 'clamp',
               extrapolateRight: 'clamp',
               easing: easeInOutCubic
             }
           );
+
+          // Calculate scale - only scale in, stay at 1.05
+          const scale = interpolate(
+            frame,
+            [fadeInStart, fadeInEnd],
+            [1, 1.05],
+            {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp',
+              easing: easeInOutCubic
+            }
+          );
+
+          // Calculate next clip's start frame
+          const nextStartFrame = index < imageList.length - 1 
+            ? imageStartFrames[index + 1] 
+            : startFrame + durationFrames;
+
+          // Ensure the clip stays visible until the next one is fully visible
+          const actualDuration = nextStartFrame - startFrame + transitionDuration;
 
           const imageUrl = typeof item === 'string' ? item : item.url;
 
-          // Calculate transition progress with easing
-          const transitionProgress = interpolate(
-            frame,
-            [startFrame, startFrame + transitionDuration],
-            [0, 1],
-            { 
-              extrapolateLeft: 'clamp', 
-              extrapolateRight: 'clamp',
-              easing: easeInOutBack
-            }
-          );
-
-          // Calculate exit transition progress
-          const exitProgress = interpolate(
-            frame,
-            [nextImageStartTime, startFrame + durationFrames],
-            [0, 1],
-            { 
-              extrapolateLeft: 'clamp', 
-              extrapolateRight: 'clamp',
-              easing: easeInOutCubic
-            }
-          );
-
           return (
-            <Sequence key={index} from={startFrame} durationInFrames={durationFrames}>
+            <Sequence 
+              key={index} 
+              from={startFrame} 
+              durationInFrames={actualDuration}
+            >
               <AbsoluteFill>
                 <Img
                   src={imageUrl}
@@ -143,21 +142,12 @@ function RemotionComposition({ videoData }) {
                     height: '100%',
                     objectFit: 'cover',
                     transform: `scale(${scale})`,
-                    opacity: interpolate(
-                      frame,
-                      [startFrame, startFrame + transitionDuration, nextImageStartTime, startFrame + durationFrames],
-                      [0, 1, 1, 0],
-                      { 
-                        extrapolateLeft: 'clamp', 
-                        extrapolateRight: 'clamp',
-                        easing: easeInOutCubic
-                      }
-                    ),
+                    opacity: opacity,
                     ...(transition === 'fade' && { 
                       filter: `blur(${interpolate(
-                        transitionProgress,
-                        [0, 0.5, 1],
-                        [4, 0, 0],
+                        frame,
+                        [fadeInStart, fadeInEnd],
+                        [2, 0],
                         { 
                           extrapolateLeft: 'clamp', 
                           extrapolateRight: 'clamp',
@@ -168,52 +158,32 @@ function RemotionComposition({ videoData }) {
                     ...(transition === 'slide' && { 
                       transform: `scale(${scale}) translateX(${interpolate(
                         frame,
-                        [startFrame, startFrame + transitionDuration, nextImageStartTime, startFrame + durationFrames],
-                        [20, 0, 0, -20],
+                        [fadeInStart, fadeInEnd],
+                        [10, 0],
                         { 
                           extrapolateLeft: 'clamp', 
                           extrapolateRight: 'clamp',
                           easing: easeOutBack
                         }
-                      )}%)`,
-                      filter: `blur(${interpolate(
-                        transitionProgress,
-                        [0, 0.5, 1],
-                        [2, 0, 0],
-                        { 
-                          extrapolateLeft: 'clamp', 
-                          extrapolateRight: 'clamp',
-                          easing: easeInOutCubic
-                        }
-                      )}px)`
+                      )}%)`
                     }),
                     ...(transition === 'zoom' && { 
                       transform: `scale(${interpolate(
                         frame,
-                        [startFrame, startFrame + transitionDuration, nextImageStartTime, startFrame + durationFrames],
-                        [1.1, 1, 1, 0.9],
+                        [fadeInStart, fadeInEnd],
+                        [1.05, 1],
                         { 
                           extrapolateLeft: 'clamp', 
                           extrapolateRight: 'clamp',
                           easing: easeInOutBack
                         }
-                      )})`,
-                      filter: `blur(${interpolate(
-                        transitionProgress,
-                        [0, 0.5, 1],
-                        [2, 0, 0],
-                        { 
-                          extrapolateLeft: 'clamp', 
-                          extrapolateRight: 'clamp',
-                          easing: easeInOutCubic
-                        }
-                      )}px)`
+                      )})`
                     }),
                     ...(transition === 'dissolve' && { 
                       filter: `blur(${interpolate(
                         frame,
-                        [startFrame, startFrame + transitionDuration, nextImageStartTime, startFrame + durationFrames],
-                        [8, 0, 0, 8],
+                        [fadeInStart, fadeInEnd],
+                        [4, 0],
                         { 
                           extrapolateLeft: 'clamp', 
                           extrapolateRight: 'clamp',

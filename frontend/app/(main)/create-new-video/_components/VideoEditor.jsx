@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import debounce from 'lodash/debounce';
 
 const TRANSITION_EFFECTS = [
   { name: 'Fade', value: 'fade' },
@@ -138,6 +139,71 @@ const VideoEditor = ({ mediaItems, setMediaItems, audioUrl, onBackgroundMusicCha
   const musicRef = useRef(null);
   const [audioDuration, setAudioDuration] = useState(0);
 
+  // Debounced update functions
+  const debouncedUpdateBackgroundMusic = useRef(
+    debounce(async (newStart, newEnd) => {
+      if (!recordId || !backgroundMusic?.url) return;
+      const { ConvexHttpClient } = await import('convex/browser');
+      const { api } = await import('@/convex/_generated/api');
+      const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
+      try {
+        await convex.mutation(api.videoData.UpdateBackgroundMusic, {
+          recordId,
+          backgroundMusic: {
+            url: backgroundMusic.url,
+            volume: musicVolume,
+            start: newStart,
+            end: newEnd
+          }
+        });
+      } catch (error) {
+        console.error('Error updating background music:', error);
+      }
+    }, 500)
+  ).current;
+
+  const debouncedUpdateNarratorVolume = useRef(
+    debounce(async (newVolume) => {
+      if (!recordId) return;
+      const { ConvexHttpClient } = await import('convex/browser');
+      const { api } = await import('@/convex/_generated/api');
+      const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
+      try {
+        const currentData = await convex.query(api.videoData.GetVideoById, { videoId: recordId });
+        await convex.mutation(api.videoData.UpdateCaptionsAndAudio, {
+          recordId,
+          audioUrl: currentData?.audioUrl,
+          captionJson: currentData?.captionJson,
+          narratorVolume: newVolume,
+        });
+      } catch (error) {
+        console.error('Error updating narrator volume:', error);
+      }
+    }, 500)
+  ).current;
+
+  const debouncedUpdateMusicVolume = useRef(
+    debounce(async (newVolume) => {
+      if (!recordId || !backgroundMusic?.url) return;
+      const { ConvexHttpClient } = await import('convex/browser');
+      const { api } = await import('@/convex/_generated/api');
+      const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
+      try {
+        await convex.mutation(api.videoData.UpdateBackgroundMusic, {
+          recordId,
+          backgroundMusic: {
+            url: backgroundMusic.url,
+            volume: newVolume,
+            start: musicStart,
+            end: musicEnd
+          }
+        });
+      } catch (error) {
+        console.error('Error updating music volume:', error);
+      }
+    }, 500)
+  ).current;
+
   const handleMusicUpload = async (event) => {
     const file = event.target.files[0];
     if (file && recordId) {
@@ -233,18 +299,35 @@ const VideoEditor = ({ mediaItems, setMediaItems, audioUrl, onBackgroundMusicCha
       setMusicIsPlaying(!musicIsPlaying);
     }
   };
+
   const handleMusicTimeUpdate = (e) => {
-    setMusicCurrentTime(e.target.currentTime);
+    const currentTime = e.target.currentTime;
+    setMusicCurrentTime(currentTime);
+    
+    // Check if we've reached the end of the cropped range
+    if (musicEnd !== null && currentTime >= musicEnd) {
+      e.target.currentTime = musicStart;
+    }
   };
+
   const handleMusicLoadedMetadata = (e) => {
     setMusicDuration(e.target.duration);
   };
+
   const handleMusicTimeSliderChange = (value) => {
     if (musicRef.current) {
-      musicRef.current.currentTime = value[0];
-      setMusicCurrentTime(value[0]);
+      const newTime = value[0];
+      // Ensure the time is within the cropped range
+      if (musicEnd !== null && newTime > musicEnd) {
+        musicRef.current.currentTime = musicStart;
+      } else {
+        musicRef.current.currentTime = newTime;
+      }
+      setMusicCurrentTime(newTime);
     }
   };
+
+  // Volume effect
   useEffect(() => {
     if (musicRef.current) {
       musicRef.current.volume = musicVolume / 100;
@@ -257,6 +340,39 @@ const VideoEditor = ({ mediaItems, setMediaItems, audioUrl, onBackgroundMusicCha
       setMusicEnd(musicDuration);
     }
   }, [backgroundMusic, musicDuration, musicStart]);
+
+  // Handle music crop changes
+  const handleMusicCropChange = (value) => {
+    const [newStart, newEnd] = value;
+    setMusicStart(newStart);
+    setMusicEnd(newEnd);
+    
+    // If music is playing, update its position
+    if (musicRef.current && musicIsPlaying) {
+      musicRef.current.currentTime = newStart;
+    }
+    
+    debouncedUpdateBackgroundMusic(newStart, newEnd);
+  };
+
+  // Add effect to handle music looping
+  useEffect(() => {
+    if (!musicRef.current) return;
+    
+    const handleTimeUpdate = (e) => {
+      const currentTime = e.target.currentTime;
+      if (musicEnd !== null && currentTime >= musicEnd) {
+        e.target.currentTime = musicStart;
+      }
+    };
+
+    musicRef.current.addEventListener('timeupdate', handleTimeUpdate);
+    return () => {
+      if (musicRef.current) {
+        musicRef.current.removeEventListener('timeupdate', handleTimeUpdate);
+      }
+    };
+  }, [musicStart, musicEnd]);
 
   const handleDurationChange = (index, newDuration, updatedItem = null) => {
     const items = [...mediaItems];
@@ -281,39 +397,6 @@ const VideoEditor = ({ mediaItems, setMediaItems, audioUrl, onBackgroundMusicCha
     setMediaItems(items);
   };
 
-  // Update Convex when crop changes
-  const updateBackgroundMusicInConvex = async (newStart, newEnd) => {
-    if (!recordId || !backgroundMusic?.url) return;
-    const { ConvexHttpClient } = await import('convex/browser');
-    const { api } = await import('@/convex/_generated/api');
-    const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
-    await convex.mutation(api.videoData.UpdateBackgroundMusic, {
-      recordId,
-      backgroundMusic: {
-        url: backgroundMusic.url,
-        volume: musicVolume,
-        start: newStart,
-        end: newEnd
-      }
-    });
-  };
-
-  // Update narratorVolume in Convex when changed
-  const updateNarratorVolumeInConvex = async (newVolume) => {
-    if (!recordId) return;
-    const { ConvexHttpClient } = await import('convex/browser');
-    const { api } = await import('@/convex/_generated/api');
-    const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
-    // Fetch current values to avoid overwriting
-    const currentData = await convex.query(api.videoData.GetVideoById, { videoId: recordId });
-    await convex.mutation(api.videoData.UpdateCaptionsAndAudio, {
-      recordId,
-      audioUrl: currentData?.audioUrl,
-      captionJson: currentData?.captionJson,
-      narratorVolume: newVolume,
-    });
-  };
-
   return (
     <div className="space-y-4">
       {/* Narrator Audio Section */}
@@ -335,7 +418,7 @@ const VideoEditor = ({ mediaItems, setMediaItems, audioUrl, onBackgroundMusicCha
                 className="w-20"
                 onValueChange={(value) => {
                   setNarratorVolume(value[0]);
-                  updateNarratorVolumeInConvex(value[0]);
+                  debouncedUpdateNarratorVolume(value[0]);
                 }}
               />
               <span className="text-xs text-gray-500">{narratorVolume}%</span>
@@ -398,7 +481,10 @@ const VideoEditor = ({ mediaItems, setMediaItems, audioUrl, onBackgroundMusicCha
               max={100}
               step={1}
               className="w-20"
-              onValueChange={(value) => setMusicVolume(value[0])}
+              onValueChange={(value) => {
+                setMusicVolume(value[0]);
+                debouncedUpdateMusicVolume(value[0]);
+              }}
             />
             <span className="text-xs text-gray-500">{musicVolume}%</span>
           </div>
@@ -410,6 +496,7 @@ const VideoEditor = ({ mediaItems, setMediaItems, audioUrl, onBackgroundMusicCha
               max={musicDuration}
               step={0.1}
               onValueChange={handleMusicTimeSliderChange}
+              className="w-full"
             />
             {/* Crop Range Slider */}
             <div className="flex flex-col mt-2">
@@ -419,11 +506,7 @@ const VideoEditor = ({ mediaItems, setMediaItems, audioUrl, onBackgroundMusicCha
                 min={0}
                 max={musicDuration}
                 step={0.1}
-                onValueChange={(value) => {
-                  setMusicStart(value[0]);
-                  setMusicEnd(value[1]);
-                  updateBackgroundMusicInConvex(value[0], value[1]);
-                }}
+                onValueChange={handleMusicCropChange}
                 className="w-full"
               />
               <div className="flex justify-between text-xs text-gray-500 mt-1">
