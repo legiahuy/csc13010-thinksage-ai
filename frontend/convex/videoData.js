@@ -1,7 +1,6 @@
 import { mutation } from './_generated/server';
 import { v } from 'convex/values';
 import { query } from './_generated/server';
-import { useQuery } from 'convex/react';
 
 export const CreateVideo = mutation({
   args: {
@@ -85,46 +84,54 @@ export const UpdateImages = mutation({
     recordId: v.id('videoData'),
     images: v.any(),
   },
-  handler: async (ctx,args)=>{
+  handler: async (ctx, args) => {
     const result = await ctx.db.patch(args.recordId, {
       images: args.images,
     });
-    return result;  
-  }
+    return result;
+  },
 });
 //Script + Audio
 export const UpdateCaptionsAndAudio = mutation({
-  args:{
+  args: {
     recordId: v.id('videoData'),
     audioUrl: v.optional(v.string()),
     captionJson: v.optional(v.any()),
     narratorVolume: v.optional(v.number()),
   },
-  handler: async (ctx,args)=>{
-    const result =await ctx.db.patch(args.recordId,{
+  handler: async (ctx, args) => {
+    const result = await ctx.db.patch(args.recordId, {
       audioUrl: args.audioUrl,
       captionJson: args.captionJson,
       narratorVolume: args.narratorVolume,
     });
-    return result
-  }
-})
+    return result;
+  },
+});
 
 export const UpdateCompletedvideo = mutation({
-  args:{
+  args: {
     recordId: v.id('videoData'),
     status: v.string(),
     downloadUrl: v.optional(v.string()),
   },
-  handler: async (ctx,args)=>{
-    const result = await ctx.db.patch(args.recordId,{
+  handler: async (ctx, args) => {
+    const result = await ctx.db.patch(args.recordId, {
       status: 'completed',
       downloadUrl: args.downloadUrl,
     });
     return result;
-  }
-})
+  },
+});
 
+export const DeleteVideo = mutation({
+  args: {
+    videoId: v.id('videoData'),
+  },
+  handler: async (ctx, args) => {
+    const result = await ctx.db.delete(args.videoId);
+    return result;
+  },
 export const UpdateBackgroundMusic = mutation({
   args: {
     recordId: v.id('videoData'),
@@ -151,7 +158,7 @@ export const GetUserVideos = query({
     const result = await ctx.db
       .query('videoData')
       .filter((q) => q.eq(q.field('uid'), args.uid))
-      .filter((q) => q.eq(q.field('status'), 'completed'))
+      .filter((q) => q.or(q.eq(q.field('status'), 'completed'), q.eq(q.field('status'), 'pending')))
       .order('desc')
       .collect();
 
@@ -183,12 +190,12 @@ export const fetchImages = query({
 });
 
 export const fetchAudio = query({
-  args:{
+  args: {
     videoId: v.id('videoData'),
   },
-  handler: async (ctx,args)=>{
+  handler: async (ctx, args) => {
     const videoData = await ctx.db.get(args.videoId);
-    if(!videoData){
+    if (!videoData) {
       throw new Error(`Video data with Id ${args.videoId} not found.`);
     }
     return videoData.audioUrl;
@@ -211,5 +218,35 @@ export const fetchVideoData = query({
       images: videoData.images,
       caption: videoData.caption,
     };
-  }
+  },
+});
+
+export const GetAllVideos = query({
+  handler: async (ctx) => {
+    const result = await ctx.db
+      .query('videoData')
+      .filter((q) => q.or(q.eq(q.field('status'), 'completed'), q.eq(q.field('status'), 'pending')))
+      .order('desc')
+      .collect();
+
+    return result;
+  },
+});
+
+export const saveYoutubeStats = mutation({
+  args: {
+    videoId: v.id("videoData"),
+    stats: v.object({
+      viewCount: v.string(),
+      likeCount: v.string(),
+      commentCount: v.string(),
+    }),
+    youtubeUrl: v.optional(v.string()), // ✅ Thêm url nếu có
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.videoId, {
+      youtubeStats: args.stats,
+      ...(args.youtubeUrl ? { youtubeUrl: args.youtubeUrl } : {}),
+    });
+  },
 });

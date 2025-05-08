@@ -7,6 +7,7 @@ export default defineSchema({
     email: v.string(),
     pictureURL: v.string(),
     credits: v.number(),
+    role: v.string(),
   }),
 
   videoData: defineTable({
@@ -15,12 +16,12 @@ export default defineSchema({
     topic: v.optional(v.string()),
     voice: v.optional(v.string()),
     videoStyle: v.optional(v.string()),
-    caption:v.optional(v.any()),
+    caption: v.optional(v.any()),
     images: v.optional(v.any()),
     audioUrl: v.optional(v.string()),
     captionJson: v.optional(v.any()),
     uid: v.optional(v.id('users')),
-    createdBy: (v.string()),
+    createdBy: v.string(),
     status: v.optional(v.string()),
     downloadUrl: v.optional(v.string()),
     backgroundMusic: v.optional(v.object({
@@ -29,6 +30,12 @@ export default defineSchema({
       start: v.optional(v.number()),
       end: v.optional(v.number())
     })),
+    youtubeStats: v.optional(v.object({
+      viewCount: v.string(),
+      likeCount: v.string(),
+      commentCount: v.string()
+    })),
+    youtubeUrl: v.optional(v.string()),
     narratorVolume: v.optional(v.number()),
   }),
 });
