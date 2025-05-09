@@ -29,12 +29,14 @@ export const CreateVideoData = mutation({
     uid: v.id('users'),
     createdBy: v.string(),
     credits: v.number(),
-    backgroundMusic: v.optional(v.object({
-      url: v.string(),
-      volume: v.number(),
-      start: v.optional(v.number()),
-      end: v.optional(v.number())
-    })),
+    backgroundMusic: v.optional(
+      v.object({
+        url: v.string(),
+        volume: v.number(),
+        start: v.optional(v.number()),
+        end: v.optional(v.number()),
+      })
+    ),
     narratorVolume: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
@@ -132,22 +134,26 @@ export const DeleteVideo = mutation({
     const result = await ctx.db.delete(args.videoId);
     return result;
   },
+});
+
 export const UpdateBackgroundMusic = mutation({
   args: {
     recordId: v.id('videoData'),
-    backgroundMusic: v.optional(v.object({
-      url: v.string(),
-      volume: v.number(),
-      start: v.optional(v.number()),
-      end: v.optional(v.number())
-    }))
+    backgroundMusic: v.optional(
+      v.object({
+        url: v.string(),
+        volume: v.number(),
+        start: v.optional(v.number()),
+        end: v.optional(v.number()),
+      })
+    ),
   },
   handler: async (ctx, args) => {
     const result = await ctx.db.patch(args.recordId, {
-      backgroundMusic: args.backgroundMusic
+      backgroundMusic: args.backgroundMusic,
     });
     return result;
-  }
+  },
 });
 
 export const GetUserVideos = query({
@@ -235,7 +241,7 @@ export const GetAllVideos = query({
 
 export const saveYoutubeStats = mutation({
   args: {
-    videoId: v.id("videoData"),
+    videoId: v.id('videoData'),
     stats: v.object({
       viewCount: v.string(),
       likeCount: v.string(),

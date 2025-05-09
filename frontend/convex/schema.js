@@ -7,7 +7,7 @@ export default defineSchema({
     email: v.string(),
     pictureURL: v.string(),
     credits: v.number(),
-    role: v.string(),
+    role: v.optional(v.string()),
   }),
 
   videoData: defineTable({
@@ -24,17 +24,21 @@ export default defineSchema({
     createdBy: v.string(),
     status: v.optional(v.string()),
     downloadUrl: v.optional(v.string()),
-    backgroundMusic: v.optional(v.object({
-      url: v.string(),
-      volume: v.number(),
-      start: v.optional(v.number()),
-      end: v.optional(v.number())
-    })),
-    youtubeStats: v.optional(v.object({
-      viewCount: v.string(),
-      likeCount: v.string(),
-      commentCount: v.string()
-    })),
+    backgroundMusic: v.optional(
+      v.object({
+        url: v.string(),
+        volume: v.number(),
+        start: v.optional(v.number()),
+        end: v.optional(v.number()),
+      })
+    ),
+    youtubeStats: v.optional(
+      v.object({
+        viewCount: v.string(),
+        likeCount: v.string(),
+        commentCount: v.string(),
+      })
+    ),
     youtubeUrl: v.optional(v.string()),
     narratorVolume: v.optional(v.number()),
   }),
