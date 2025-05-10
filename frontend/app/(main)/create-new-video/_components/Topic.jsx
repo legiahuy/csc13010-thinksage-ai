@@ -72,7 +72,7 @@ function Topic({ onHandleInputChange }) {
         aiService: selectedAIService,
       });
 
-      setScripts(result.data?.scripts || []);
+      setScripts(result.data?.scripts || result.data?.script || []);
     } catch (error) {
       console.error('Error generating script:', error);
       toast.error('Failed to generate script. Please try again.');
