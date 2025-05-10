@@ -1,38 +1,36 @@
-"use client"
-import { useRef, useState, useEffect } from "react"
-import Topic from "./_components/Topic"
-import VideoStyle from "./_components/VideoStyle"
-import Voice from "./_components/Voice"
-import Captions from "./_components/Captions"
-import { Loader2Icon, WandSparkles } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import Preview from "./_components/Preview"
-import axios from "axios"
-import { api } from "@/convex/_generated/api"
-import { useAuthContext } from "@/app/providers"
-import { useMutation, useQuery } from "convex/react"
-import { useRouter } from "next/navigation"
-import VideoEditor from './_components/VideoEditor'
-import VideoPreview from './_components/VideoPreview'
+'use client';
+import { useRef, useState, useEffect } from 'react';
+import Topic from './_components/Topic';
+import VideoStyle from './_components/VideoStyle';
+import Voice from './_components/Voice';
+import Captions from './_components/Captions';
+import { Loader2Icon, WandSparkles } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import Preview from './_components/Preview';
+import axios from 'axios';
+import { api } from '@/convex/_generated/api';
+import { useAuthContext } from '@/app/providers';
+import { useMutation, useQuery } from 'convex/react';
+import { useRouter } from 'next/navigation';
+import VideoEditor from './_components/VideoEditor';
+import VideoPreview from './_components/VideoPreview';
 
 function CreateNewVideo() {
-  const [formData, setFormData] = useState({})
-  const CreateInitialVideoRecord = useMutation(api.videoData.CreateVideoData)
-  const GetVideoTitle = useMutation(api.videoData.CreateVideo)
-  const UpdateImages = useMutation(api.videoData.UpdateImages)
-  const { user } = useAuthContext()
-  const [loading, setLoading] = useState(false)
-  const [audioLoading, setAudioLoading] = useState(false)
-  const [imagesLoading, setImagesLoading] = useState(false)
-  const router = useRouter()
-  const [titleSubmitted, setTitleSubmitted] = useState(false)
-  const [audioStatus, setAudio] = useState(false)
-  const [imagesStatus, setImages] = useState(false)
-  const audioRef = useRef(null)
+  const [formData, setFormData] = useState({});
+  const CreateInitialVideoRecord = useMutation(api.videoData.CreateVideoData);
+  const GetVideoTitle = useMutation(api.videoData.CreateVideo);
+  const UpdateImages = useMutation(api.videoData.UpdateImages);
+  const { user } = useAuthContext();
+  const [loading, setLoading] = useState(false);
+  const [audioLoading, setAudioLoading] = useState(false);
+  const [imagesLoading, setImagesLoading] = useState(false);
+  const router = useRouter();
+  const [titleSubmitted, setTitleSubmitted] = useState(false);
+  const [audioStatus, setAudio] = useState(false);
+  const [imagesStatus, setImages] = useState(false);
+  const audioRef = useRef(null);
   const [mediaItems, setMediaItems] = useState([]);
   const [audioUrl, setAudioUrl] = useState(null);
-  const [previewImages, setPreviewImages] = useState([]);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [backgroundMusic, setBackgroundMusic] = useState(null);
   const [narratorVolume, setNarratorVolume] = useState(100);
   const [musicVolume, setMusicVolume] = useState(50);
@@ -40,18 +38,24 @@ function CreateNewVideo() {
   const [musicEnd, setMusicEnd] = useState(null);
 
   // Fetch images if videoId exists
-  const images = useQuery(api.videoData.fetchImages, formData?.recordId ? { videoId: formData.recordId } : "skip")
+  const images = useQuery(
+    api.videoData.fetchImages,
+    formData?.recordId ? { videoId: formData.recordId } : 'skip'
+  );
 
   // Fetch audio if videoId exists
-  const audio = useQuery(api.videoData.fetchAudio, formData?.recordId ? { videoId: formData.recordId } : "skip")
-  
+  const audio = useQuery(
+    api.videoData.fetchAudio,
+    formData?.recordId ? { videoId: formData.recordId } : 'skip'
+  );
+
   // Clear loading states when content is fetched
   useEffect(() => {
     if (images && images.length > 0) {
       setImagesLoading(false);
     }
   }, [images]);
-  
+
   useEffect(() => {
     if (audio) {
       setAudioLoading(false);
@@ -62,9 +66,9 @@ function CreateNewVideo() {
     setFormData((prev) => ({
       ...prev,
       [fieldName]: fieldValue,
-    }))
-    console.log(formData)
-  }
+    }));
+    console.log(formData);
+  };
 
   useEffect(() => {
     if (audioRef.current && audio) {
@@ -91,7 +95,6 @@ function CreateNewVideo() {
           transition: 'none',
         }));
         setMediaItems(newMediaItems);
-        setPreviewImages(images);
       });
       audio.load();
     }
@@ -105,7 +108,7 @@ function CreateNewVideo() {
   }, [audio]);
 
   const GetTitle = async () => {
-    if (formData?.title && formData.title.trim() !== "") {
+    if (formData?.title && formData.title.trim() !== '') {
       try {
         const response = await GetVideoTitle({
           uid: user?._id,
@@ -121,73 +124,76 @@ function CreateNewVideo() {
 
         setTitleSubmitted(true);
       } catch (error) {
-        console.error("Error creating video title:", error);
-        alert("Error creating video. Please try again.");
+        console.error('Error creating video title:', error);
+        alert('Error creating video. Please try again.');
       }
     } else {
-      alert("Please enter a title for the video!");
+      alert('Please enter a title for the video!');
     }
   };
 
   const GenerateVideo = async () => {
     setLoading(true);
     try {
-      const resp = await CreateInitialVideoRecord({
+      await CreateInitialVideoRecord({
         recordId: formData.recordId,
         script: formData.script,
         topic: formData.topic,
-        voice: formData.voice || "",
+        voice: formData.voice || '',
         videoStyle: formData.videoStyle,
-        caption: formData.caption || "",
+        caption: formData.caption || '',
         uid: user?._id,
         createdBy: user?.email,
         credits: user?.credits,
         narratorVolume: narratorVolume,
-        backgroundMusic: backgroundMusic ? {
-          url: backgroundMusic.url,
-          volume: musicVolume,
-          start: musicStart,
-          end: musicEnd
-        } : undefined,
+        backgroundMusic: backgroundMusic
+          ? {
+              url: backgroundMusic.url,
+              volume: musicVolume,
+              start: musicStart,
+              end: musicEnd,
+            }
+          : undefined,
       });
 
-      // Update images in the database with transitions
       await UpdateImages({
         recordId: formData.recordId,
-        images: mediaItems.map(item => ({
+        images: mediaItems.map((item) => ({
           url: typeof item === 'string' ? item : item.url,
           transition: item.transition || 'fade',
           duration: item.duration || 5,
           startTime: item.startTime || 0,
           endTime: item.endTime || 5,
-          volume: item.volume || 100
+          volume: item.volume || 100,
         })),
       });
 
       // Generate video with transitions and background music
-      const result = await axios.post("/api/generate-video", {
+      await axios.post('/api/generate-video', {
         ...formData,
         narratorVolume: narratorVolume,
-        mediaItems: mediaItems.map(item => ({
+        mediaItems: mediaItems.map((item) => ({
           url: typeof item === 'string' ? item : item.url,
           transition: item.transition || 'fade',
           duration: item.duration || 5,
           startTime: item.startTime || 0,
           endTime: item.endTime || 5,
-          volume: item.volume || 100
+          volume: item.volume || 100,
         })),
-        backgroundMusic: backgroundMusic ? {
-          url: backgroundMusic.url,
-          volume: musicVolume,
-          start: musicStart,
-          end: musicEnd
-        } : undefined
+        backgroundMusic: backgroundMusic
+          ? {
+              url: backgroundMusic.url,
+              volume: musicVolume,
+              start: musicStart,
+              end: musicEnd,
+            }
+          : undefined,
       });
-      
-      router.push("/dashboard");
+
+      router.push('/dashboard');
     } catch (error) {
-      console.error("Error generating video:", error);
-      alert("Error generating video. Please try again.");
+      console.error('Error generating video:', error);
+      alert('Error generating video. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -196,140 +202,70 @@ function CreateNewVideo() {
   // Audio generation
   const PreviewAudio = async () => {
     if (user?.credits <= 0) {
-      alert("Please add more credits!")
-      return
+      alert('Please add more credits!');
+      return;
     }
     if (!formData?.topic || !formData?.script || !formData?.voice) {
-      alert("Error: Missing fields")
-      return
+      alert('Error: Missing fields');
+      return;
     }
-
     setAudioLoading(true);
     try {
       // Save data
-      const resp = await CreateInitialVideoRecord({
+      await CreateInitialVideoRecord({
         recordId: formData.recordId,
         script: formData.script,
         topic: formData.topic,
         voice: formData.voice,
-        videoStyle: formData.videoStyle || "",
-        caption: formData.caption || "",
+        videoStyle: formData.videoStyle || '',
+        caption: formData.caption || '',
         uid: user?._id,
         createdBy: user?.email,
         credits: user?.credits,
-      })
-      console.log(resp)
+      });
 
       // Generate audio preview
-      const result = await axios.post("/api/preview-audio", formData)
-      console.log("RecordID:", formData.recordId)
-      console.log(result)
+      await axios.post('/api/preview-audio', formData);
       setAudio(true);
     } catch (error) {
-      console.error("Error generating audio:", error)
-      alert("Error generating audio. Please try again.")
-    } finally {
-      setAudioLoading(false);
+      console.error('Error generating audio:', error);
+      alert('Error generating audio. Please try again.');
+      setAudioLoading(false); // Only clear loading on error
     }
-  }
+  };
 
   // Image generation
   const PreviewImages = async () => {
     if (user?.credits <= 0) {
-      alert("Please add more credits!")
-      return
+      alert('Please add more credits!');
+      return;
     }
     if (!formData?.topic || !formData?.script || !formData?.videoStyle) {
-      alert("Error: Please fill required fields")
-      return
+      alert('Error: Please fill required fields');
+      return;
     }
-
     setImagesLoading(true);
     try {
       // Save data
-      const resp = await CreateInitialVideoRecord({
+      await CreateInitialVideoRecord({
         recordId: formData.recordId,
         script: formData.script,
         topic: formData.topic,
-        voice: formData.voice || "",
+        voice: formData.voice || '',
         videoStyle: formData.videoStyle,
-        caption: formData.caption || "",
+        caption: formData.caption || '',
         uid: user?._id,
         createdBy: user?.email,
         credits: user?.credits,
-      })
-      console.log(resp)
+      });
 
       // Generate image previews
-      const result = await axios.post("/api/preview-images", formData)
-      console.log("RecordID:", formData.recordId)
-      console.log(result)
+      await axios.post('/api/preview-images', formData);
       setImages(true);
     } catch (error) {
-      console.error("Error generating images:", error)
-      alert("Error generating images. Please try again.")
-    } finally {
-      setImagesLoading(false);
-    }
-  }
-
-  // Add this function to handle media uploads
-  const handleMediaUpload = (files) => {
-    const newItems = Array.from(files).map((file, index) => ({
-      id: Date.now() + index,
-      name: file.name,
-      type: file.type.startsWith('image/') ? 'image' : 'video',
-      url: URL.createObjectURL(file),
-      thumbnail: file.type.startsWith('image/') ? URL.createObjectURL(file) : null,
-      duration: 5, // Default duration in seconds
-      startTime: 0,
-      endTime: 5,
-    }));
-    setMediaItems([...mediaItems, ...newItems]);
-  };
-
-  const handleGeneratePreviews = async () => {
-    setIsGenerating(true);
-    try {
-      // Generate audio preview
-      const audioResponse = await fetch('/api/preview-audio', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ script: formData.script }),
-      });
-      const audioData = await audioResponse.json();
-      setAudioUrl(audioData.url);
-
-      // Generate image previews
-      const imagesResponse = await fetch('/api/preview-images', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ script: formData.script }),
-      });
-      const imagesData = await imagesResponse.json();
-      
-      // Convert images to media items
-      const newMediaItems = imagesData.images.map((image, index) => ({
-        id: `scene-${index}`,
-        name: `Scene ${index + 1}`,
-        url: image.url,
-        duration: 5, // Default duration for each scene
-        startTime: 0,
-        endTime: 5,
-        volume: 100,
-        transition: 'none',
-      }));
-      
-      setMediaItems(newMediaItems);
-      setPreviewImages(imagesData.images);
-    } catch (error) {
-      console.error('Error generating previews:', error);
-    } finally {
-      setIsGenerating(false);
+      console.error('Error generating images:', error);
+      alert('Error generating images. Please try again.');
+      setImagesLoading(false); // Only clear loading on error
     }
   };
 
@@ -346,7 +282,7 @@ function CreateNewVideo() {
             type="text"
             className="w-full p-3 rounded-md border border-gray-700 bg-black text-white mb-4"
             placeholder="My Awesome Video"
-            onChange={(e) => onHandleInputChange("title", e.target.value)}
+            onChange={(e) => onHandleInputChange('title', e.target.value)}
           />
           <Button className="w-full" onClick={GetTitle}>
             Continue
@@ -364,18 +300,36 @@ function CreateNewVideo() {
               {/* Video Style */}
               <div className="space-y-4">
                 <VideoStyle onHandleInputChange={onHandleInputChange} />
-                <Button className="w-full" variant="outline" onClick={PreviewImages} disabled={imagesLoading}>
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  onClick={PreviewImages}
+                  disabled={imagesLoading}
+                >
                   {imagesLoading ? <Loader2Icon className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  {imagesLoading ? "Generating Images..." : (imagesStatus ? "Regenerate Images" : "Preview Images")}
+                  {imagesLoading
+                    ? 'Generating Images...'
+                    : imagesStatus
+                      ? 'Regenerate Images'
+                      : 'Preview Images'}
                 </Button>
               </div>
 
               {/* Voice */}
               <div className="space-y-4">
                 <Voice onHandleInputChange={onHandleInputChange} />
-                <Button className="w-full" variant="outline" onClick={PreviewAudio} disabled={audioLoading}>
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  onClick={PreviewAudio}
+                  disabled={audioLoading}
+                >
                   {audioLoading ? <Loader2Icon className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  {audioLoading ? "Generating Audio..." : (audioStatus ? "Regenerate Audio" : "Preview Audio")}
+                  {audioLoading
+                    ? 'Generating Audio...'
+                    : audioStatus
+                      ? 'Regenerate Audio'
+                      : 'Preview Audio'}
                 </Button>
               </div>
 
@@ -385,14 +339,27 @@ function CreateNewVideo() {
               {/* Video Preview */}
               <div className="mt-8 mb-8 p-4 bg-gray-800 rounded-xl">
                 <h2 className="text-xl font-bold mb-2 text-white">Image Slideshow Preview</h2>
-                <p className="text-gray-300 mb-4">Get an early look at your image sequence and transitions before generating the final video.</p>
-                <VideoPreview mediaItems={mediaItems} audioUrl={audioUrl} backgroundMusic={backgroundMusic} narratorVolume={narratorVolume} musicVolume={musicVolume} musicStart={musicStart} musicEnd={musicEnd} />
+                <p className="text-gray-300 mb-4">
+                  Get an early look at your image sequence and transitions before generating the
+                  final video.
+                </p>
+                <VideoPreview
+                  mediaItems={mediaItems}
+                  audioUrl={audioUrl}
+                  backgroundMusic={backgroundMusic}
+                  narratorVolume={narratorVolume}
+                  musicVolume={musicVolume}
+                  musicStart={musicStart}
+                  musicEnd={musicEnd}
+                />
               </div>
 
               {/* Volume Settings */}
               <div className="mt-5">
                 <h2>Volume Settings</h2>
-                <p className="text-sm text-gray-400 mb-4">Adjust the volume for the narrator and background music below.</p>
+                <p className="text-sm text-gray-400 mb-4">
+                  Adjust the volume for the narrator and background music below.
+                </p>
                 <VideoEditor
                   mediaItems={mediaItems}
                   setMediaItems={setMediaItems}
@@ -424,9 +391,9 @@ function CreateNewVideo() {
                   {/* Generated Images */}
                   <div className="mb-6">
                     <h4 className="text-lg font-medium mb-3">Images</h4>
-                    {previewImages && previewImages.length > 0 ? (
+                    {images && images.length > 0 ? (
                       <div className="grid grid-cols-2 gap-3">
-                        {previewImages.map((img, idx) => (
+                        {images.map((img, idx) => (
                           <img
                             key={idx}
                             src={typeof img === 'string' ? img : img.url}
@@ -437,7 +404,7 @@ function CreateNewVideo() {
                       </div>
                     ) : (
                       <div className="bg-gray-800 rounded-lg p-4 text-center text-gray-400">
-                        No images generated yet
+                        {imagesLoading ? 'Generating images...' : 'No images generated yet'}
                       </div>
                     )}
                   </div>
@@ -447,19 +414,24 @@ function CreateNewVideo() {
                     <h4 className="text-lg font-medium mb-3">Audio</h4>
                     {audioUrl ? (
                       <div className="bg-gray-800 rounded-lg p-3">
-                        <audio controls className="w-full">
+                        <audio ref={audioRef} controls className="w-full">
                           <source src={audioUrl} type="audio/mp3" />
                           Your browser does not support the audio element.
                         </audio>
                       </div>
                     ) : (
                       <div className="bg-gray-800 rounded-lg p-4 text-center text-gray-400">
-                        No audio generated yet
+                        {audioLoading ? 'Generating audio...' : 'No audio generated yet'}
                       </div>
                     )}
                   </div>
-                  {(audioStatus && imagesStatus) && (
-                    <Button className="w-full mt-6" size="lg" disabled={loading} onClick={GenerateVideo}>
+                  {audioStatus && imagesStatus && (
+                    <Button
+                      className="w-full mt-6"
+                      size="lg"
+                      disabled={loading}
+                      onClick={GenerateVideo}
+                    >
                       {loading ? (
                         <>
                           <Loader2Icon className="mr-2 h-5 w-5 animate-spin" />
@@ -480,7 +452,7 @@ function CreateNewVideo() {
         </div>
       )}
     </div>
-  )
+  );
 }
 
-export default CreateNewVideo
+export default CreateNewVideo;
