@@ -90,7 +90,7 @@ function RemotionComposition({ videoData }) {
           // Calculate transition timing
           const transitionDuration = Math.min(30, Math.floor(durationFrames / 3));
           
-          // Calculate frame ranges for transitions - only fade in
+            // Calculate frame ranges for transitions - only fade in
           const fadeInStart = startFrame;
           const fadeInEnd = startFrame + transitionDuration;
 

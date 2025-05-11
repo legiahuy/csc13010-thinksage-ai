@@ -127,7 +127,25 @@ const Timeline = ({ mediaItems, setMediaItems, onDurationChange, onVolumeChange,
   );
 };
 
-const VideoEditor = ({ mediaItems, setMediaItems, audioUrl, onBackgroundMusicChange, narratorVolume, setNarratorVolume, musicVolume, setMusicVolume, backgroundMusic, musicStart, setMusicStart, musicEnd, setMusicEnd, recordId }) => {
+const VideoEditor = ({ 
+  mediaItems, 
+  setMediaItems, 
+  audioUrl, 
+  onBackgroundMusicChange, 
+  narratorVolume, 
+  setNarratorVolume, 
+  musicVolume, 
+  setMusicVolume, 
+  backgroundMusic, 
+  musicStart, 
+  setMusicStart, 
+  musicEnd, 
+  setMusicEnd, 
+  recordId,
+  narrationMode,
+  onNarrationModeChange,
+  onUserRecording
+}) => {
   console.log('VideoEditor backgroundMusic prop:', backgroundMusic);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -277,8 +295,13 @@ const VideoEditor = ({ mediaItems, setMediaItems, audioUrl, onBackgroundMusicCha
   };
   const handleNarratorTimeSliderChange = (value) => {
     if (audioRef.current) {
-      audioRef.current.currentTime = value[0];
-      setCurrentTime(value[0]);
+      const newTime = value[0];
+      if (typeof newTime === 'number' && isFinite(newTime)) {
+        audioRef.current.currentTime = newTime;
+        setCurrentTime(newTime);
+      } else {
+        console.warn('Attempted to set audio currentTime to a non-finite value:', newTime);
+      }
     }
   };
   useEffect(() => {

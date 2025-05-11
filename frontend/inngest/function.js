@@ -50,36 +50,62 @@ export const GenImg = inngest.createFunction(
     //generate image
     const GenerateImages = await step.run('generateImages', async () => {
       try {
+        if (!process.env.NEXT_PUBLIC_AIGURULAB_API_KEY) {
+          throw new Error('AIGURULAB_API_KEY is not configured');
+        }
+
         let images = [];
         images = await Promise.all(
           GenerateImagePrompt.map(async (element) => {
+            if (!element?.imagePrompt) {
+              console.warn('Skipping image generation for empty prompt');
+              return null;
+            }
+
+            console.log('Generating image for prompt:', element.imagePrompt);
             const result = await axios.post(
               BASE_URL + '/api/generate-image',
               {
                 width: 1024,
                 height: 1024,
-                input: element?.imagePrompt,
-                model: 'sdxl', //'flux'
-                aspectRatio: '1:1', //Applicable to Flux model only
+                input: element.imagePrompt,
+                model: 'sdxl',
+                aspectRatio: '1:1',
               },
               {
                 headers: {
-                  'x-api-key': process.env.NEXT_PUBLIC_AIGURULAB_API_KEY, // Your API Key
-                  'Content-Type': 'application/json', // Content Type
+                  'x-api-key': process.env.NEXT_PUBLIC_AIGURULAB_API_KEY,
+                  'Content-Type': 'application/json',
                 },
+                timeout: 30000, // 30 second timeout
               }
             );
-            console.log(result.data.image); //Output Result: Base 64 Image
+
+            if (!result.data?.image) {
+              throw new Error('No image data in response');
+            }
+
+            console.log('Successfully generated image');
             return result.data.image;
           })
         );
+
+        // Filter out any null values from failed generations
+        images = images.filter(img => img !== null);
+        
+        if (images.length === 0) {
+          throw new Error('No images were successfully generated');
+        }
+
         return images;
       } catch (error) {
         console.error('Error generating images:', error);
         if (error.response) {
-          console.error('API Response:', error.response.data);
-          console.error('Status:', error.response.status);
-          console.error('Headers:', error.response.headers);
+          console.error('API Response:', {
+            status: error.response.status,
+            data: error.response.data,
+            headers: error.response.headers
+          });
         } else if (error.request) {
           console.error('No response received:', error.request);
         } else {
