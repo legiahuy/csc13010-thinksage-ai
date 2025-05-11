@@ -38,10 +38,9 @@ function CreateNewVideo() {
   const [musicStart, setMusicStart] = useState(0);
   const [musicEnd, setMusicEnd] = useState(null);
   const [narrationMode, setNarrationMode] = useState('ai');
-  const [userRecordingUrl, setUserRecordingUrl] = useState(null);
+  const [setUserRecordingUrl] = useState(null);
   const [alignedSegments, setAlignedSegments] = useState(null);
   const [showGuidedModal, setShowGuidedModal] = useState(false);
-  const [guidedRecordings, setGuidedRecordings] = useState([]);
 
   // Fetch images if videoId exists
   const images = useQuery(
@@ -71,16 +70,11 @@ function CreateNewVideo() {
   const onHandleInputChange = (fieldName, fieldValue) => {
     setFormData((prev) => {
       const newData = {
-      ...prev,
-      [fieldName]: fieldValue,
+        ...prev,
+        [fieldName]: fieldValue,
       };
-      // If we're setting caption, ensure captionJson is also set
-      if (fieldName === 'caption' && fieldValue && typeof fieldValue === 'object') {
-        newData.captionJson = {
-          style: fieldValue.style,
-          name: fieldValue.name
-        };
-      }
+      // Remove the bug: do NOT set captionJson to the style object when picking a style
+      // Only set captionJson to the Deepgram array after transcription
       console.log('Updated formData:', newData);
       return newData;
     });
@@ -99,32 +93,40 @@ function CreateNewVideo() {
       const audio = new Audio(audioUrl);
       audio.addEventListener('loadedmetadata', () => {
         const totalDuration = audio.duration;
-        
+
         let newMediaItems;
         if (narrationMode === 'ai') {
           // Original AI narrator logic
-        const perImage = totalDuration / images.length;
+          const perImage = totalDuration / images.length;
           newMediaItems = images.map((image, index) => ({
-          id: `scene-${index}`,
-          name: `Scene ${index + 1}`,
-          url: typeof image === 'string' ? image : image.url,
-            duration: (typeof perImage === 'number' && isFinite(perImage)) ? perImage : 5,
-            startTime: (typeof perImage === 'number' && isFinite(perImage)) ? index * perImage : 0,
-            endTime: (typeof perImage === 'number' && isFinite(perImage)) ? (index + 1) * perImage : 5,
-          volume: 100,
+            id: `scene-${index}`,
+            name: `Scene ${index + 1}`,
+            url: typeof image === 'string' ? image : image.url,
+            duration: typeof perImage === 'number' && isFinite(perImage) ? perImage : 5,
+            startTime: typeof perImage === 'number' && isFinite(perImage) ? index * perImage : 0,
+            endTime:
+              typeof perImage === 'number' && isFinite(perImage) ? (index + 1) * perImage : 5,
+            volume: 100,
             transition: 'fade',
-        }));
+          }));
         } else {
           // User recording with forced alignment
           newMediaItems = images.map((image, index) => {
             const segment = alignedSegments?.[index] || {
               start: index * (totalDuration / images.length),
               end: (index + 1) * (totalDuration / images.length),
-              duration: totalDuration / images.length
+              duration: totalDuration / images.length,
             };
-            const duration = (typeof segment.duration === 'number' && isFinite(segment.duration)) ? segment.duration : 5;
-            const startTime = (typeof segment.start === 'number' && isFinite(segment.start)) ? segment.start : 0;
-            const endTime = (typeof segment.end === 'number' && isFinite(segment.end)) ? segment.end : startTime + duration;
+            const duration =
+              typeof segment.duration === 'number' && isFinite(segment.duration)
+                ? segment.duration
+                : 5;
+            const startTime =
+              typeof segment.start === 'number' && isFinite(segment.start) ? segment.start : 0;
+            const endTime =
+              typeof segment.end === 'number' && isFinite(segment.end)
+                ? segment.end
+                : startTime + duration;
             return {
               id: `scene-${index}`,
               name: `Scene ${index + 1}`,
@@ -179,27 +181,33 @@ function CreateNewVideo() {
     setLoading(true);
     try {
       // Create initial video record with caption data
-      await CreateInitialVideoRecord({
+      const initialPayload = {
         recordId: formData.recordId,
         script: formData.script,
         topic: formData.topic,
         voice: formData.voice || '',
         videoStyle: formData.videoStyle,
         caption: formData.caption || '',
-        captionJson: formData.captionJson || null,
         uid: user?._id,
         createdBy: user?.email,
         credits: user?.credits,
         narratorVolume: narratorVolume,
         backgroundMusic: backgroundMusic
           ? {
-          url: backgroundMusic.url,
-          volume: musicVolume,
-          start: musicStart,
+              url: backgroundMusic.url,
+              volume: musicVolume,
+              start: musicStart,
               end: musicEnd,
             }
           : undefined,
-      });
+      };
+      // Only include captionJson if it is being set for the first time (not already present)
+      if (Array.isArray(formData.captionJson) && formData.captionJson.length > 0) {
+        // Do not include captionJson, leave it as is in the DB
+      } else if (formData.captionJson) {
+        initialPayload.captionJson = formData.captionJson;
+      }
+      await CreateInitialVideoRecord(initialPayload);
 
       // Update images with timing data
       await UpdateImages({
@@ -215,10 +223,15 @@ function CreateNewVideo() {
       });
 
       // Generate video with all necessary data
-      await axios.post('/api/generate-video', {
+      const payload = {
         ...formData,
         caption: formData.caption || '',
-        captionJson: formData.captionJson || null,
+        // Only include captionJson if it is being set for the first time (not already present)
+        ...(Array.isArray(formData.captionJson) && formData.captionJson.length > 0
+          ? {} // Do not include captionJson, leave it as is in the DB
+          : formData.captionJson
+            ? { captionJson: formData.captionJson }
+            : {}),
         narratorVolume: narratorVolume,
         mediaItems: mediaItems.map((item) => ({
           url: typeof item === 'string' ? item : item.url,
@@ -230,14 +243,16 @@ function CreateNewVideo() {
         })),
         backgroundMusic: backgroundMusic
           ? {
-          url: backgroundMusic.url,
-          volume: musicVolume,
-          start: musicStart,
+              url: backgroundMusic.url,
+              volume: musicVolume,
+              start: musicStart,
               end: musicEnd,
             }
           : undefined,
-      });
-      
+      };
+
+      await axios.post('/api/generate-video', payload);
+
       router.push('/dashboard');
     } catch (error) {
       console.error('Error generating video:', error);
@@ -337,7 +352,9 @@ function CreateNewVideo() {
 
   // Add a ref for formData to use in the AudioRecorder callback
   const formDataRef = useRef(formData);
-  useEffect(() => { formDataRef.current = formData; }, [formData]);
+  useEffect(() => {
+    formDataRef.current = formData;
+  }, [formData]);
 
   // Utility: Concatenate WebM audio blobs
   async function concatenateAudioBlobs(blobs) {
@@ -347,17 +364,17 @@ function CreateNewVideo() {
   }
 
   // Utility: Upload to Cloudinary
-  async function uploadToCloudinary(blob) {
-    const formData = new FormData();
-    formData.append('file', blob);
-    formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/video/upload`, {
-      method: 'POST',
-      body: formData,
-    });
-    const data = await res.json();
-    return data.secure_url;
-  }
+  //async function uploadToCloudinary(blob) {
+  //  const formData = new FormData();
+  //  formData.append('file', blob);
+  //  formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
+  //  const res = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/video/upload`, {
+  //    method: 'POST',
+  //    body: formData,
+  //  });
+  //  const data = await res.json();
+  //  return data.secure_url;
+  //}
 
   return (
     <div className="container mx-auto px-4">
@@ -458,11 +475,13 @@ function CreateNewVideo() {
                       onClose={() => setShowGuidedModal(false)}
                       onComplete={async (recordings) => {
                         // 1. Concatenate audio blobs
-                        const audioBlobs = recordings.map(r => r.audio);
+                        const audioBlobs = recordings.map((r) => r.audio);
                         const finalAudioBlob = await concatenateAudioBlobs(audioBlobs);
                         // 2. Upload to server-side API
                         const uploadForm = new FormData();
-                        const file = new File([finalAudioBlob], 'voice.webm', { type: 'audio/webm' });
+                        const file = new File([finalAudioBlob], 'voice.webm', {
+                          type: 'audio/webm',
+                        });
                         uploadForm.append('audio', file);
                         uploadForm.append('recordId', formData.recordId || '');
                         const uploadRes = await fetch('/api/upload-voice', {
@@ -479,9 +498,11 @@ function CreateNewVideo() {
                             id: `scene-${idx}`,
                             name: `Scene ${idx + 1}`,
                             url: typeof image === 'string' ? image : image.url,
-                            duration: (typeof recordings[idx]?.duration === 'number' && isFinite(recordings[idx]?.duration))
-                              ? recordings[idx].duration
-                              : 5, // fallback to 5 seconds
+                            duration:
+                              typeof recordings[idx]?.duration === 'number' &&
+                              isFinite(recordings[idx]?.duration)
+                                ? recordings[idx].duration
+                                : 5, // fallback to 5 seconds
                             audioBlob: recordings[idx]?.audio,
                             startTime: 0,
                             endTime: 0,
@@ -608,7 +629,7 @@ function CreateNewVideo() {
                     >
                       {loading ? (
                         <>
-                        <Loader2Icon className="mr-2 h-5 w-5 animate-spin" />
+                          <Loader2Icon className="mr-2 h-5 w-5 animate-spin" />
                           Generating Video...
                         </>
                       ) : (

@@ -91,8 +91,8 @@ export const GenImg = inngest.createFunction(
         );
 
         // Filter out any null values from failed generations
-        images = images.filter(img => img !== null);
-        
+        images = images.filter((img) => img !== null);
+
         if (images.length === 0) {
           throw new Error('No images were successfully generated');
         }
@@ -104,7 +104,7 @@ export const GenImg = inngest.createFunction(
           console.error('API Response:', {
             status: error.response.status,
             data: error.response.data,
-            headers: error.response.headers
+            headers: error.response.headers,
           });
         } else if (error.request) {
           console.error('No response received:', error.request);
@@ -181,7 +181,7 @@ export const GenAudio = inngest.createFunction(
       const result = await convex.mutation(api.videoData.UpdateCaptionsAndAudio, {
         recordId: recordId,
         audioUrl: GenerateAudioFile,
-        captionJson: GenerateCaptions,
+        captionJson: GenerateCaptions, // Save captions immediately!
       });
       return result;
     });
@@ -189,14 +189,14 @@ export const GenAudio = inngest.createFunction(
 );
 
 export const GenVideo = inngest.createFunction(
-  { name: "Generate Video" },
-  { event: "video/generate" },
+  { name: 'Generate Video' },
+  { event: 'video/generate' },
   async ({ event, step }) => {
     const { recordId } = event.data;
     const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
     // Fetch DB values for fallback
-    const VideoData = await step.run("Fetch Video Data", async () => {
+    const VideoData = await step.run('Fetch Video Data', async () => {
       const result = await convex.query(api.videoData.GetVideoById, {
         videoId: recordId,
       });
@@ -210,12 +210,56 @@ export const GenVideo = inngest.createFunction(
       images: event.data.mediaItems || VideoData.images || [],
       backgroundMusic: event.data.backgroundMusic || VideoData.backgroundMusic || undefined,
       narratorVolume: event.data.narratorVolume ?? VideoData.narratorVolume,
+      // Only use captionJson if it's an array, never from caption
+      captionJson: Array.isArray(event.data.captionJson)
+        ? event.data.captionJson
+        : Array.isArray(VideoData.captionJson)
+          ? VideoData.captionJson
+          : [],
+      // Only use caption if it's an object (not array), never from captionJson
+      caption:
+        event.data.caption &&
+        typeof event.data.caption === 'object' &&
+        !Array.isArray(event.data.caption)
+          ? event.data.caption
+          : VideoData.caption &&
+              typeof VideoData.caption === 'object' &&
+              !Array.isArray(VideoData.caption)
+            ? VideoData.caption
+            : {
+                name: 'Youtuber',
+                style:
+                  'text-yellow-400 text-3xl font-extrabold uppercase tracking-wide drop-shadow-md px-3 py-1 rounded-lg',
+              },
+      // captions for Remotion, always from captionJson
+      captions: Array.isArray(event.data.captionJson)
+        ? event.data.captionJson
+        : Array.isArray(VideoData.captionJson)
+          ? VideoData.captionJson
+          : [],
     };
 
     // Write video data to JSON file
-    await step.run("Write Video Data", async () => {
+    await step.run('Write Video Data', async () => {
+      // Validate all three fields
+      if (!Array.isArray(videoData.captionJson)) videoData.captionJson = [];
+      if (!Array.isArray(videoData.captions)) videoData.captions = [];
+      if (typeof videoData.caption !== 'object' || Array.isArray(videoData.caption)) {
+        videoData.caption = {
+          name: 'Youtuber',
+          style:
+            'text-yellow-400 text-3xl font-extrabold uppercase tracking-wide drop-shadow-md px-3 py-1 rounded-lg',
+        };
+      }
+      console.log('Video data being written:', {
+        hasCaptions: !!videoData.captions,
+        captionsLength: videoData.captions?.length,
+        hasCaptionJson: !!videoData.captionJson,
+        captionJsonLength: videoData.captionJson?.length,
+        captionStyle: videoData.caption?.style,
+      });
       const jsonData = JSON.stringify(videoData);
-      fs.writeFileSync(path.join(process.cwd(), "public", "videoData.json"), jsonData);
+      fs.writeFileSync(path.join(process.cwd(), 'public', 'videoData.json'), jsonData);
     });
 
     const RenderVideo = await step.run('renderVideo', async () => {
@@ -339,8 +383,8 @@ export const UploadMusic = inngest.createFunction(
           recordId: recordId,
           backgroundMusic: {
             url: downloadUrl,
-            volume: 50 // Default volume
-          }
+            volume: 50, // Default volume
+          },
         });
         console.log('Database update result:', result);
         return result;

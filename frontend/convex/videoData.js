@@ -41,24 +41,25 @@ export const CreateVideoData = mutation({
     narratorVolume: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const result = await ctx.db.patch(args.recordId, {
+    const patchData = {
       script: args.script,
       topic: args.topic,
       voice: args.voice,
       videoStyle: args.videoStyle,
       caption: args.caption,
-      captionJson: args.captionJson,
       uid: args.uid,
       createdBy: args.createdBy,
       status: 'pending',
       backgroundMusic: args.backgroundMusic,
       narratorVolume: args.narratorVolume,
-    });
-
+    };
+    if (Array.isArray(args.captionJson) && args.captionJson.length > 0) {
+      patchData.captionJson = args.captionJson;
+    }
+    const result = await ctx.db.patch(args.recordId, patchData);
     await ctx.db.patch(args.uid, {
       credits: args?.credits - 1,
     });
-
     return result;
   },
 });
@@ -72,13 +73,16 @@ export const UpdateVideoRecord = mutation({
     downloadUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const result = await ctx.db.patch(args.recordId, {
+    const patchData = {
       audioUrl: args.audioUrl,
       images: args.images,
-      captionJson: args.captionJson,
       downloadUrl: args.downloadUrl,
       status: 'completed',
-    });
+    };
+    if (Array.isArray(args.captionJson) && args.captionJson.length > 0) {
+      patchData.captionJson = args.captionJson;
+    }
+    const result = await ctx.db.patch(args.recordId, patchData);
     return result;
   },
 });
@@ -104,11 +108,14 @@ export const UpdateCaptionsAndAudio = mutation({
     narratorVolume: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const result = await ctx.db.patch(args.recordId, {
+    const patchData = {
       audioUrl: args.audioUrl,
-      captionJson: args.captionJson,
       narratorVolume: args.narratorVolume,
-    });
+    };
+    if (Array.isArray(args.captionJson) && args.captionJson.length > 0) {
+      patchData.captionJson = args.captionJson;
+    }
+    const result = await ctx.db.patch(args.recordId, patchData);
     return result;
   },
 });
