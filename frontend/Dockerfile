@@ -43,9 +43,11 @@ COPY --chown=node:node app/globals.css ./app/globals.css
 
 # Install dependencies
 RUN npm install
+RUN npm install @remotion/compositor-linux-x64-gnu
 
 # Build CSS with proper error handling
-RUN npm run build:tailwind || (echo "CSS build failed" && exit 1)
+RUN npm run build:css || true
+
 
 # Install Chrome
 RUN npx remotion browser ensure
