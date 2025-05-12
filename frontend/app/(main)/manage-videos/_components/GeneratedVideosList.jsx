@@ -90,6 +90,14 @@ function GeneratedVideosList() {
     GetAllVideos();
   }, [GetAllVideos]);
 
+  // Helper to safely extract image URL (reuse from VideoList)
+  const getImageUrl = (img) => {
+    if (!img) return '';
+    if (typeof img === 'string') return img;
+    if (typeof img === 'object' && img.url) return img.url;
+    return '';
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -112,13 +120,15 @@ function GeneratedVideosList() {
             <div key={index} className="group relative">
               <Link href={'/play-video/' + video?._id}>
                 <div className="relative">
-                  {video?.status == 'completed' ? (
+                  {video?.status === 'completed' &&
+                  getImageUrl(video?.images?.[0]) &&
+                  typeof getImageUrl(video?.images?.[0]) === 'string' &&
+                  getImageUrl(video?.images?.[0]).trim() !== '' ? (
                     <Image
-                      src={video?.images[0]}
-                      alt={video?.title}
+                      src={getImageUrl(video?.images?.[0])}
+                      alt={video?.title || 'Video thumbnail'}
                       width={500}
                       height={500}
-                      priority={index === 0}
                       className="w-full object-cover rounded-xl aspect-[2/3]"
                     />
                   ) : (
