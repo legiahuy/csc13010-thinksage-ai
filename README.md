@@ -21,6 +21,18 @@ ThinkSage AI is a comprehensive solution that streamlines the process of creatin
 | 3   | 22127031   | Nguyễn Duy Bảo      | ndbao22@clc.fitus.edu.vn    |
 | 4   | 22127193   | Vũ Nguyễn Gia Khiêm | vngkhiem22@clc.fitus.edu.vn |
 
+## Screenshots
+
+![thinksage-ai-screenshot](screenshots/screenshot1.png)
+![thinksage-ai-screenshot](screenshots/screenshot2.png)
+![thinksage-ai-screenshot](screenshots/screenshot3.png)
+![thinksage-ai-screenshot](screenshots/screenshot4.png)
+![thinksage-ai-screenshot](screenshots/screenshot5.png)
+![thinksage-ai-screenshot](screenshots/screenshot6.png)
+![thinksage-ai-screenshot](screenshots/screenshot7.png)
+![thinksage-ai-screenshot](screenshots/screenshot8.png)
+![thinksage-ai-screenshot](screenshots/screenshot9.png)
+
 ## Features
 
 ### Core Features
@@ -118,41 +130,25 @@ ThinkSage AI is a comprehensive solution that streamlines the process of creatin
 - Natural scene transitions
 - Clear and readable captions
 
-## Screenshots
-
-[Add screenshots of your application here]
-
 ## Tech Stack
 
 ### Frontend
 
-- **Next.js** - React framework for production ![Next.js][Next.js]
-- **Tailwind CSS** - Utility-first CSS framework ![TailwindCSS][TailwindCSS]
-- **shadcn/ui** - Component library ![shadcn][shadcn]
-- **Remotion** - Video rendering framework ![Remotion][Remotion]
-- **Firebase** - Authentication and real-time database ![Firebase][Firebase]
-- **Convex** - Backend as a service ![Convex][Convex]
-- **Recharts** - Data visualization ![Recharts][Recharts]
+![Next.js][Next.js] ![TailwindCSS][TailwindCSS] ![shadcn][shadcn]
+![Remotion][Remotion] ![Firebase][Firebase] ![Convex][Convex]
+![Recharts][Recharts]
 
 ### Backend
 
-- **Node.js** - Runtime environment ![Node.js][Node.js]
-- **Python** - Data crawling and processing ![Python][Python]
-- **Convex** - Backend infrastructure ![Convex][Convex]
-- **Inngest** - Workflow automation ![Inngest][Inngest]
-- **Deepgram** - Speech-to-text processing ![Deepgram][Deepgram]
-- **Google APIs** - Integration with Google services ![Google][Google]
-- **OpenAI API** - Content generation ![OpenAI][OpenAI]
-- **Gemini AI** - Image and content processing ![Gemini][Gemini]
-- **DeepSeek** - Illustration generation ![DeepSeek][DeepSeek]
-- **Aigurulab** - Voice synthesis ![Aigurulab][Aigurulab]
+![Node.js][Node.js] ![Python][Python] ![Convex][Convex]
+![Inngest][Inngest] ![Deepgram][Deepgram] ![Google][Google]
+![OpenAI][OpenAI] ![Gemini][Gemini] ![DeepSeek][DeepSeek]
+![Aigurulab][Aigurulab]
 
 ### Development Tools
 
-- **ESLint** - Code linting ![ESLint][ESLint]
-- **Prettier** - Code formatting ![Prettier][Prettier]
-- **Husky** - Git hooks ![Husky][Husky]
-- **Docker** - Containerization ![Docker][Docker]
+![ESLint][ESLint] ![Prettier][Prettier]
+![Husky][Husky] ![Docker][Docker]
 
 <!-- MARKDOWN LINKS & IMAGES -->
 
@@ -309,30 +305,46 @@ Create and configure the following environment files:
 1. Frontend `.env`:
 
 ```
-# API Keys
-OPENAI_API_KEY=
-GEMINI_API_KEY=
-AIGURULAB_API_KEY=
-DEEPSEEK_API_KEY=
+REMOTION_GCP_PRIVATE_KEY=
+REMOTION_GCP_CLIENT_EMAIL=
+REMOTION_GCP_PROJECT_ID=
 
-# OAuth Credentials
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
+GCP_SERVICE_URL=
+GCP_SERVE_URL =
 
-# Database
-CONVEX_DEPLOYMENT=
+INPUT_PROPS_PATH=
 ```
 
 2. Frontend `.env.local`:
 
 ```
-# Add any local-specific environment variables here
+NEXT_PUBLIC_FIREBASE_API_KEY =
+
+CONVEX_DEPLOYMENT=
+
+NEXT_PUBLIC_CONVEX_URL=
+NEXT_PUBLIC_AIGURULAB_API_KEY=
+NEXT_PUBLIC_GEMINI_API_KEY=
+NEXT_PUBLIC_DEEPGRAM_API_KEY=
+
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=
+NEXT_PUBLIC_CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+
+NEXT_PUBLIC_OPENAI_API_KEY=
+NEXT_PUBLIC_OPENROUTER_API_KEY=
+
+YOUTUBE_CLIENT_ID=
+YOUTUBE_CLIENT_SECRET=
+YOUTUBE_REDIRECT_URI=
 ```
 
 3. Crawler `.env`:
 
 ```
-# Add crawler-specific environment variables here
+PUBMED_API_KEY=
+NATURE_API_KEY=
+SPRINGER_API_KEY=
 ```
 
 ### Docker Deployment
@@ -363,14 +375,6 @@ docker run -p 3000:3000 thinksage-ai
 └── .husky/           # Git hooks configuration
 ```
 
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
 ## Credits & Inspiration
 
 This project was inspired by and built upon the concepts and architecture demonstrated in [AI Video Generator with Next.js, OpenAI, and Remotion](https://www.youtube.com/watch?v=uBgFPmieR6M). We've extended the original implementation with additional features including:
@@ -380,7 +384,3 @@ This project was inspired by and built upon the concepts and architecture demons
 - Advanced AI model integration
 - Extended video customization options
 - Improved user interface and experience
-
-## Support
-
-For support, please open an issue in the GitHub repository or contact the development team.
