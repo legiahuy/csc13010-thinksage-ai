@@ -10,7 +10,7 @@ ThinkSage AI is a comprehensive solution that streamlines the process of creatin
 
 ## Information & Contact
 
-- Course: CSC13010
+- Course: HCMUS - CSC13010
 - Project: ThinkSage AI
 - Team Members:
 
@@ -126,33 +126,56 @@ ThinkSage AI is a comprehensive solution that streamlines the process of creatin
 
 ### Frontend
 
-- Next.js - React framework for production
-- Tailwind CSS - Utility-first CSS framework
-- shadcn/ui - Component library
-- Remotion - Video rendering framework
-- Firebase - Authentication and real-time database
-- Convex - Backend as a service
-- Recharts - Data visualization
+- **Next.js** - React framework for production ![Next.js][Next.js]
+- **Tailwind CSS** - Utility-first CSS framework ![TailwindCSS][TailwindCSS]
+- **shadcn/ui** - Component library ![shadcn][shadcn]
+- **Remotion** - Video rendering framework ![Remotion][Remotion]
+- **Firebase** - Authentication and real-time database ![Firebase][Firebase]
+- **Convex** - Backend as a service ![Convex][Convex]
+- **Recharts** - Data visualization ![Recharts][Recharts]
 
 ### Backend
 
-- Node.js - Runtime environment
-- Python - Data crawling and processing
-- Convex - Backend infrastructure
-- Inngest - Workflow automation
-- Deepgram - Speech-to-text processing
-- Google APIs - Integration with Google services
-- OpenAI API - Content generation
-- Gemini AI - Image and content processing
-- DeepSeek - Illustration generation
-- Aigurulab - Voice synthesis
+- **Node.js** - Runtime environment ![Node.js][Node.js]
+- **Python** - Data crawling and processing ![Python][Python]
+- **Convex** - Backend infrastructure ![Convex][Convex]
+- **Inngest** - Workflow automation ![Inngest][Inngest]
+- **Deepgram** - Speech-to-text processing ![Deepgram][Deepgram]
+- **Google APIs** - Integration with Google services ![Google][Google]
+- **OpenAI API** - Content generation ![OpenAI][OpenAI]
+- **Gemini AI** - Image and content processing ![Gemini][Gemini]
+- **DeepSeek** - Illustration generation ![DeepSeek][DeepSeek]
+- **Aigurulab** - Voice synthesis ![Aigurulab][Aigurulab]
 
 ### Development Tools
 
-- ESLint - Code linting
-- Prettier - Code formatting
-- Husky - Git hooks
-- Docker - Containerization
+- **ESLint** - Code linting ![ESLint][ESLint]
+- **Prettier** - Code formatting ![Prettier][Prettier]
+- **Husky** - Git hooks ![Husky][Husky]
+- **Docker** - Containerization ![Docker][Docker]
+
+<!-- MARKDOWN LINKS & IMAGES -->
+
+[Next.js]: https://img.shields.io/badge/next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white
+[TailwindCSS]: https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white
+[shadcn]: https://img.shields.io/badge/shadcn-000000?style=for-the-badge&logo=shadcnui&logoColor=white
+[Remotion]: https://img.shields.io/badge/Remotion-000000?style=for-the-badge&logo=remotion&logoColor=white
+[Firebase]: https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black
+[Convex]: https://img.shields.io/badge/Convex-000000?style=for-the-badge&logo=convex&logoColor=white
+[Recharts]: https://img.shields.io/badge/Recharts-000000?style=for-the-badge&logo=recharts&logoColor=white
+[Node.js]: https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white
+[Python]: https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white
+[Inngest]: https://img.shields.io/badge/Inngest-000000?style=for-the-badge&logo=inngest&logoColor=white
+[Deepgram]: https://img.shields.io/badge/Deepgram-000000?style=for-the-badge&logo=deepgram&logoColor=white
+[Google]: https://img.shields.io/badge/Google-4285F4?style=for-the-badge&logo=google&logoColor=white
+[OpenAI]: https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white
+[Gemini]: https://img.shields.io/badge/Gemini-000000?style=for-the-badge&logo=gemini&logoColor=white
+[DeepSeek]: https://img.shields.io/badge/DeepSeek-000000?style=for-the-badge&logo=deepseek&logoColor=white
+[Aigurulab]: https://img.shields.io/badge/Aigurulab-000000?style=for-the-badge&logo=aigurulab&logoColor=white
+[ESLint]: https://img.shields.io/badge/ESLint-4B32C3?style=for-the-badge&logo=eslint&logoColor=white
+[Prettier]: https://img.shields.io/badge/Prettier-F7B93E?style=for-the-badge&logo=prettier&logoColor=black
+[Husky]: https://img.shields.io/badge/Husky-000000?style=for-the-badge&logo=husky&logoColor=white
+[Docker]: https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white
 
 ## Building and Usage
 
@@ -347,19 +370,6 @@ docker run -p 3000:3000 thinksage-ai
 3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
-
-## License
-
-This project is licensed under the ISC License.
-
-## Acknowledgments
-
-- OpenAI for GPT API
-- Google for Gemini AI
-- Aigurulab for voice synthesis
-- DeepSeek for illustration generation
-- Remotion for video rendering
-- Convex for backend infrastructure
 
 ## Credits & Inspiration
 
